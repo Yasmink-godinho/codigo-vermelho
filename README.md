@@ -1,17 +1,18 @@
 <div align="center">
 
-# 🩸 Código Vermelho
+# 🩸 Rota Vital — Código Vermelho
 
-### Sistema Inteligente para Gestão e Logística de Hemocomponentes
+### Inteligência Logística na Gestão e Distribuição de Hemocomponentes
 
-**Projeto acadêmico desenvolvido para a Rota Vital, com foco na aplicação de tecnologia aos desafios relacionados à gestão, logística e distribuição de hemocomponentes.**
+Projeto Integrador desenvolvido para o **3º semestre de Análise e Desenvolvimento de Sistemas (ADS) — 2026.2**, com aplicação de conceitos de **DDD, algoritmos de roteirização, estruturas de dados, programação concorrente, redes e análise estatística**.
 
 <br>
 
 ![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge\&logo=openjdk\&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge\&logo=springboot\&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge\&logo=postgresql\&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge\&logo=apachemaven\&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge\&logo=githubactions\&logoColor=white)
 
 </div>
 
@@ -19,163 +20,217 @@
 
 ## 📌 Sobre o Projeto
 
-O **Código Vermelho** é um projeto desenvolvido no contexto da **Rota Vital**, com o objetivo de explorar como soluções de tecnologia podem contribuir para desafios relacionados à **gestão e logística de hemocomponentes**.
+O **Rota Vital — Código Vermelho** é uma aplicação voltada à **gestão e distribuição logística de hemocomponentes** entre hemocentros e unidades hospitalares.
 
-A proposta ainda está em fase de definição e, por isso, as funcionalidades, regras de negócio e soluções que serão implementadas estão sendo construídas ao longo do desenvolvimento do projeto.
+A solução busca centralizar informações de estoque, validade, consumo e localização das unidades, utilizando regras de negócio, algoritmos e indicadores para apoiar a tomada de decisão logística.
 
-O sistema deverá utilizar tecnologia para apoiar algum dos processos relacionados à cadeia de distribuição de hemocomponentes, buscando futuramente definir uma solução que seja **útil, viável e alinhada às necessidades identificadas pelo projeto**.
+O projeto integra diferentes áreas de conhecimento do curso de ADS, combinando desenvolvimento de software, algoritmos, estatística, sistemas operacionais e redes de computadores.
 
-> 🚧 **Status do projeto:** Em desenvolvimento e definição de requisitos.
-
----
-
-## 🎯 Contexto
-
-A logística de hemocomponentes envolve diferentes fatores que precisam ser considerados para garantir que os recursos disponíveis sejam administrados de maneira adequada.
-
-Entre os possíveis desafios relacionados ao contexto estão:
-
-* 🩸 Gestão de hemocomponentes;
-* 📦 Controle e organização de estoque;
-* 🚚 Logística e distribuição;
-* ⏱️ Atendimento dentro de períodos críticos;
-* 🌡️ Conservação adequada durante o transporte;
-* 🏥 Comunicação entre os diferentes pontos da rede.
-
-**As funcionalidades e prioridades específicas do sistema ainda serão definidas durante as próximas etapas do projeto.**
+> 🚀 **Status:** Em desenvolvimento.
 
 ---
 
-## 💡 Proposta
+## 🎯 Objetivos
 
-O **Código Vermelho** busca desenvolver uma solução tecnológica que possa auxiliar algum dos processos relacionados à logística de hemocomponentes.
+O sistema tem como principais objetivos:
 
-Neste momento, a equipe está trabalhando na definição de:
-
-* Problema específico a ser solucionado;
-* Público e usuários do sistema;
-* Requisitos funcionais;
-* Requisitos não funcionais;
-* Fluxos da aplicação;
-* Regras de negócio;
-* Funcionalidades;
-* Arquitetura definitiva da solução.
-
-Por isso, determinadas partes deste README serão atualizadas conforme o projeto evoluir.
+* Monitorar o estoque de hemocomponentes nas unidades da rede;
+* Identificar situações de estoque crítico;
+* Priorizar bolsas próximas do vencimento;
+* Apoiar a redistribuição de bolsas entre unidades;
+* Considerar compatibilidade sanguínea nas movimentações;
+* Otimizar rotas de transporte;
+* Analisar o comportamento histórico do consumo;
+* Apresentar indicadores para apoio à tomada de decisão.
 
 ---
 
-# 🏗️ Arquitetura
+## 🧩 Módulos e Disciplinas
 
-A arquitetura definitiva da aplicação **ainda está em definição**.
+O projeto integra diferentes disciplinas e áreas técnicas:
 
-A estrutura será documentada nesta seção conforme as decisões técnicas e os requisitos do projeto forem estabelecidos.
+### ☕ POO — Programação Orientada a Objetos
+
+Desenvolvimento do backend em **Java/Spring Boot**, utilizando organização em camadas, entidades de domínio, serviços e endpoints REST.
+
+### 🧮 AED — Algoritmos e Estruturas de Dados
+
+Aplicação de algoritmos e estruturas de dados para problemas logísticos, incluindo:
+
+* **Dijkstra** para cálculo de caminhos mínimos;
+* **Heap / Priority Queue** para priorização de bolsas;
+* Regras de compatibilidade sanguínea ABO/Rh.
+
+### 📊 EST — Estatística
+
+Aplicação de estatística descritiva para análise do consumo de hemocomponentes, incluindo:
+
+* Média;
+* Variância;
+* Desvio padrão;
+* Coeficiente de variação;
+* Classificação da variabilidade da demanda;
+* Indicadores para apoio à gestão de estoque.
+
+### ⚙️ SO — Sistemas Operacionais
+
+Aplicação de conceitos de concorrência e multithreading, além de processos relacionados à integração e automação do sistema.
+
+### 🌐 RSD — Redes
+
+Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, telemetria e monitoramento da infraestrutura logística.
+
+---
+
+## 💡 Principais Histórias de Usuário
+
+| ID       | História de Usuário     | Descrição                                                                                          |
+| -------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
+| **US01** | Cadastro de Unidades    | Cadastro de hemocentros e hospitais, incluindo localização e parâmetros de estoque.                |
+| **US02** | Gestão de Inventário    | Registro e gerenciamento dos lotes de bolsas de sangue, incluindo validade e classificação ABO/Rh. |
+| **US03** | Fila de Prioridade FEFO | Priorização das bolsas com menor prazo de validade para reduzir perdas por vencimento.             |
+| **US05** | Roteirização Logística  | Cálculo de rotas entre unidades utilizando algoritmos de caminho mínimo.                           |
+| **US06** | Painel Descritivo       | Análise estatística do consumo e da variabilidade da demanda por tipo sanguíneo.                   |
+| **US08** | Matching Imunológico    | Verificação da compatibilidade sanguínea entre doadores, bolsas e receptores.                      |
+
+---
+
+## 📊 US06 — Painel Descritivo
+
+O módulo estatístico do projeto tem como objetivo analisar o comportamento histórico do consumo de hemocomponentes e fornecer indicadores para apoiar a gestão do estoque.
+
+As principais métricas utilizadas são:
+
+### Média
+
+Representa o consumo médio observado para determinado tipo sanguíneo.
 
 ```text
-                    ┌─────────────────────────┐
-                    │       Aplicação         │
-                    │                         │
-                    │   Código Vermelho       │
-                    └────────────┬────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │      PostgreSQL         │
-                    │                         │
-                    │     Banco de Dados      │
-                    └─────────────────────────┘
+Média = Σ Consumo / n
 ```
 
-> 🔧 **Arquitetura em construção.**
-> A organização dos módulos e responsabilidades será definida durante o desenvolvimento.
+### Variância
 
----
+Mede a dispersão dos valores de consumo em relação à média.
 
-# 💻 Tecnologias
+### Desvio Padrão
 
-As tecnologias atualmente definidas para o projeto são:
+Representa a variabilidade do consumo na mesma unidade de medida da variável analisada.
 
-| Tecnologia          | Utilização                    |
-| ------------------- | ----------------------------- |
-| ☕ **Java 17**       | Linguagem de programação      |
-| 🍃 **Spring Boot**  | Framework da aplicação        |
-| 🐘 **PostgreSQL**   | Banco de dados                |
-| 📦 **Apache Maven** | Gerenciamento de dependências |
+### Coeficiente de Variação
 
-Outras tecnologias poderão ser adicionadas conforme os requisitos e decisões técnicas do projeto forem definidos.
-
----
-
-# 🗄️ Banco de Dados
-
-O projeto utilizará o **PostgreSQL** como banco de dados.
-
-A modelagem definitiva ainda está em desenvolvimento e será documentada conforme as entidades e regras de negócio forem estabelecidas.
+Permite comparar a variabilidade relativa entre diferentes tipos sanguíneos.
 
 ```text
-┌─────────────────────────────┐
-│         PostgreSQL          │
-│                             │
-│   Modelagem em definição    │
-│                             │
-└─────────────────────────────┘
+CV = (Desvio Padrão / Média) × 100
 ```
+
+A classificação utilizada pelo painel é:
+
+| Coeficiente de Variação | Classificação          |
+| ----------------------: | ---------------------- |
+|            **CV < 15%** | Estável / Previsível   |
+|      **15% ≤ CV < 30%** | Moderadamente Instável |
+|            **CV ≥ 30%** | Alta Instabilidade     |
+
+> Os limites de classificação são parâmetros definidos para o projeto e poderão ser ajustados conforme a análise dos dados.
 
 ---
 
-# 📂 Estrutura do Projeto
+## 🚨 Regras de Alerta de Estoque
 
-A estrutura definitiva do projeto ainda será definida conforme a implementação avançar.
+O sistema utiliza regras de negócio para classificar a situação do estoque.
 
-Por enquanto, a organização inicial seguirá a estrutura padrão do projeto Java/Spring Boot:
+| Alerta                  | Condição                                             | Tag           | Ação                                                        |
+| ----------------------- | ---------------------------------------------------- | ------------- | ----------------------------------------------------------- |
+| **Normal**              | `Qtd_Atual ≥ Estoque_Minimo × 1,25`                  | 🟢 `VERDE`    | Operação regular.                                           |
+| **Atenção**             | `Estoque_Minimo ≤ Qtd_Atual < Estoque_Minimo × 1,25` | 🟡 `AMARELO`  | Exibir alerta no dashboard.                                 |
+| **Crítico**             | `Qtd_Atual < Estoque_Minimo`                         | 🔴 `VERMELHO` | Recomendar redistribuição entre unidades, quando aplicável. |
+| **Risco de Vencimento** | `Dias_Para_Vencer ≤ 3`                               | 🟠 `LARANJA`  | Priorizar utilização do lote pela regra FEFO.               |
+
+### FEFO
+
+**FEFO — First Expire, First Out** é utilizado para priorizar os lotes com menor prazo de validade, reduzindo o risco de perdas por vencimento.
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+A aplicação utiliza uma arquitetura em camadas, com conceitos de **Domain-Driven Design (DDD)**.
 
 ```text
-src/
-└── main/
-    ├── java/
-    │   └── com/
-    │       └── rotavital/
-    │           └── codigovermelho/
-    │
-    └── resources/
-        ├── application.properties
-        └── ...
+┌──────────────────────────────────────────────────────────┐
+│                    Interface / Frontend                  │
+└─────────────────────────────┬────────────────────────────┘
+                              │
+                              │ HTTP / REST
+                              ▼
+┌──────────────────────────────────────────────────────────┐
+│                Backend — Spring Boot / Java              │
+│                                                          │
+│     Controller → Service → Repository                    │
+│                                                          │
+│     ├── Gestão de Inventário                             │
+│     ├── Regras de Estoque                                │
+│     ├── FEFO                                             │
+│     ├── Roteirização                                     │
+│     └── Compatibilidade ABO/Rh                           │
+└─────────────────────────────┬────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────┐
+│                    PostgreSQL Database                    │
+└──────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────┐
+                    │ Python / Dados  │
+                    │                 │
+                    │ Pandas + NumPy  │
+                    │                 │
+                    │ Análise US06    │
+                    └─────────────────┘
 ```
 
-> 📌 A organização dos pacotes será atualizada conforme os módulos e responsabilidades forem definidos.
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+| Categoria            | Tecnologia          | Utilização                                   |
+| -------------------- | ------------------- | -------------------------------------------- |
+| Linguagem            | **Java 17**         | Desenvolvimento do backend                   |
+| Framework            | **Spring Boot 3.x** | API REST e estrutura da aplicação            |
+| Banco de Dados       | **PostgreSQL**      | Persistência dos dados                       |
+| Linguagem de Análise | **Python 3.x**      | Análise estatística e processamento de dados |
+| Biblioteca           | **Pandas**          | Manipulação e análise dos datasets           |
+| Biblioteca           | **NumPy**           | Cálculos estatísticos e operações numéricas  |
+| Build                | **Maven**           | Gerenciamento de dependências e build        |
+| Versionamento        | **Git / GitHub**    | Controle de versão e colaboração             |
+| CI/CD                | **GitHub Actions**  | Automação de processos de integração         |
 
 ---
 
-# 🚀 Como Executar
+## 🚀 Como Executar
 
-## 📋 Pré-requisitos
+### Pré-requisitos
 
-Para executar o projeto localmente, será necessário ter instalado:
+Para executar o projeto localmente, serão necessários:
 
-* **Java 17 ou superior**
-* **Git**
-* **Maven** ou Maven Wrapper
-* **PostgreSQL**
+* Java 17 ou superior;
+* Maven 3.8 ou superior;
+* PostgreSQL 14 ou superior;
+* Python 3.x;
+* Git.
 
----
-
-## 1. Clone o repositório
+### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/SEU-USUARIO/codigo-vermelho.git
-
+git clone https://github.com/Yasmink-godinho/codigo-vermelho.git
 cd codigo-vermelho
 ```
 
-> 🔧 O endereço definitivo do repositório será atualizado quando o repositório oficial estiver definido.
+### 2. Configurar o banco de dados
 
----
-
-## 2. Configure o PostgreSQL
-
-Crie um banco de dados PostgreSQL para a aplicação.
-
-As configurações de conexão deverão ser adicionadas ao arquivo:
+Configure as informações de conexão com o PostgreSQL no arquivo:
 
 ```text
 src/main/resources/application.properties
@@ -187,101 +242,95 @@ Exemplo:
 spring.datasource.url=jdbc:postgresql://localhost:5432/codigo_vermelho
 spring.datasource.username=seu_usuario
 spring.datasource.password=sua_senha
+spring.jpa.hibernate.ddl-auto=update
 ```
 
-> ⚠️ As credenciais utilizadas localmente não devem ser versionadas no repositório.
+> As credenciais reais do banco de dados não devem ser versionadas no GitHub.
 
----
+### 3. Executar o Backend
 
-## 3. Execute a aplicação
+**Windows:**
 
-### Linux / macOS
+```bash
+.\mvnw.cmd spring-boot:run
+```
+
+**Linux / macOS:**
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-### Windows
+### 4. Executar o módulo estatístico
 
-```cmd
-.\mvnw.cmd spring-boot:run
+Entre no diretório correspondente ao módulo Python e instale as dependências:
+
+```bash
+pip install -r requirements.txt
+```
+
+Depois execute o script:
+
+```bash
+python main.py
 ```
 
 ---
 
-# 🚧 Roadmap
+## 📂 Estrutura do Projeto
 
-Como o projeto ainda está em fase de definição, o roadmap será construído gradualmente.
-
-### 🔎 Etapa 1 — Descoberta
-
-* [ ] Definição do problema
-* [ ] Levantamento de requisitos
-* [ ] Identificação dos usuários
-* [ ] Definição das necessidades do sistema
-
-### 🧠 Etapa 2 — Planejamento
-
-* [ ] Definição das funcionalidades
-* [ ] Modelagem do banco de dados
-* [ ] Definição da arquitetura
-* [ ] Prototipação das interfaces
-
-### 💻 Etapa 3 — Desenvolvimento
-
-* [ ] Implementação da aplicação
-* [ ] Integração com PostgreSQL
-* [ ] Implementação das funcionalidades definidas
-* [ ] Testes
-
-### 🚀 Etapa 4 — Entrega
-
-* [ ] Documentação
-* [ ] Validação da solução
-* [ ] Apresentação
-* [ ] Deploy
+```text
+codigo-vermelho/
+│
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/
+│       │       └── rotavital/
+│       │           └── codigovermelho/
+│       │               ├── controllers/
+│       │               ├── services/
+│       │               ├── models/
+│       │               └── repositories/
+│       │
+│       └── resources/
+│           └── application.properties
+│
+├── estatistica/
+│   ├── main.py
+│   ├── Dataset_Sintetico_Malha.csv
+│   └── requirements.txt
+│
+├── pom.xml
+├── README.md
+└── LICENSE
+```
 
 ---
 
-# 👥 Equipe
+## 👥 Equipe Rota Vital
 
-Projeto desenvolvido durante o **3º semestre do curso de Análise e Desenvolvimento de Sistemas**, no contexto da **Rota Vital**.
-
-| Integrante                                 | GitHub                                                 |
-| ------------------------------------------ | ------------------------------------------------------ |
-| **Diogo Felipe da Silva Alcelino**         | [@dioguis](https://github.com/dioguis)                 |
-| **João Rafael Morato Uchoa Cavalcanti**    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Kézia de Aguiar Albuquerque**            | [@keziaguiar12](https://github.com/keziaguiar12)       |
-| **Larissa Morais do Nascimento Lira**      | [@LarissamnLira](https://github.com/LarissamnLira)     |
-| **Thayná Verçosa de Andrade**              | [@thaynavercosa](https://github.com/thaynavercosa)     |
-| **Yasmin Karolina Silva de Moura Godinho** | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
+| Integrante                                 | Papel no Projeto                              | Disciplina Principal       | GitHub                                                 |
+| ------------------------------------------ | --------------------------------------------- | -------------------------- | ------------------------------------------------------ |
+| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto          | [@LarissamnLira](https://github.com/LarissamnLira)     |
+| **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | [@dioguis](https://github.com/dioguis)                 |
+| **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | [@thaynavercosa](https://github.com/thaynavercosa)     |
+| **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
+| **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | [@keziaguiar12](https://github.com/keziaguiar12)       |
+| **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | [@jaozinnm](https://github.com/jaozinnm)               |
 
 ---
 
-# 📚 Contexto Acadêmico
+## 📄 Licença
 
-O **Código Vermelho** está sendo desenvolvido como parte das atividades acadêmicas do curso de **Análise e Desenvolvimento de Sistemas**, buscando aplicar conhecimentos de desenvolvimento de software em um problema relacionado à área da saúde e logística.
-
-O projeto encontra-se em evolução e sua definição será construída de forma colaborativa pela equipe ao longo das etapas de pesquisa, planejamento, desenvolvimento e validação.
-
----
-
-# 📄 Licença
-
-Este projeto está licenciado sob a **MIT License**.
-
-Consulte o arquivo [`LICENSE`](LICENSE) para mais informações.
+Este projeto está licenciado sob a **MIT License**. Consulte o arquivo [`LICENSE`](LICENSE) para mais informações.
 
 ---
 
 <div align="center">
 
-### 🩸 Código Vermelho
+### 🩸 Rota Vital — Código Vermelho
 
-**Um projeto em construção para transformar necessidades reais em soluções tecnológicas.**
-
-<br>
-
-*Desenvolvido pela equipe Rota Vital.*
+**Transformando restrições técnicas em inteligência logística para a gestão de hemocomponentes.**
 
 </div>
