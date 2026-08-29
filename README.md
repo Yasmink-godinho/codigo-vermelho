@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩸 Rota Vital — Código Vermelho
+# 🩸 Código Vermelho
 
 ### Inteligência Logística na Gestão e Distribuição de Hemocomponentes
 
@@ -93,6 +93,16 @@ Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, 
 | **US06** | Painel Descritivo       | Análise estatística do consumo e da variabilidade da demanda por tipo sanguíneo.                   |
 | **US08** | Matching Imunológico    | Verificação da compatibilidade sanguínea entre doadores, bolsas e receptores.                      |
 
+📄 **Detalhamento completo (formato BDD / 3Cs):** [`docs/HISTORIAS_USUARIO.md`](docs/HISTORIAS_USUARIO.md)
+
+---
+
+## 🎨 Protótipo
+ 
+O protótipo do sistema desenvolvido no Figma.
+ 
+📄 **Link do protótipo, mapeamento telas × histórias e screencast:** [`docs/PROTOTIPO.md`](docs/PROTOTIPO.md)
+ 
 ---
 
 ## 📊 US06 — Painel Descritivo
@@ -221,64 +231,12 @@ Para executar o projeto localmente, serão necessários:
 * Python 3.x;
 * Git.
 
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/Yasmink-godinho/codigo-vermelho.git
-cd codigo-vermelho
-```
-
-### 2. Configurar o banco de dados
-
-Configure as informações de conexão com o PostgreSQL no arquivo:
-
-```text
-src/main/resources/application.properties
-```
-
-Exemplo:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/codigo_vermelho
-spring.datasource.username=seu_usuario
-spring.datasource.password=sua_senha
-spring.jpa.hibernate.ddl-auto=update
-```
-
-> As credenciais reais do banco de dados não devem ser versionadas no GitHub.
-
-### 3. Executar o Backend
-
-**Windows:**
-
-```bash
-.\mvnw.cmd spring-boot:run
-```
-
-**Linux / macOS:**
-
-```bash
-./mvnw spring-boot:run
-```
-
-### 4. Executar o módulo estatístico
-
-Entre no diretório correspondente ao módulo Python e instale as dependências:
-
-```bash
-pip install -r requirements.txt
-```
-
-Depois execute o script:
-
-```bash
-python main.py
-```
+📄 **Guia completo e solução de problemas:** [`docs/COMO_EXECUTAR.md`](docs/COMO_EXECUTAR.md)
 
 ---
-
+ 
 ## 📂 Estrutura do Projeto
-
+ 
 ```text
 codigo-vermelho/
 │
@@ -286,8 +244,7 @@ codigo-vermelho/
 │   └── main/
 │       ├── java/
 │       │   └── com/
-│       │       └── rotavital/
-│       │           └── codigovermelho/
+│       │        └── codigovermelho/
 │       │               ├── controllers/
 │       │               ├── services/
 │       │               ├── models/
@@ -301,6 +258,12 @@ codigo-vermelho/
 │   ├── Dataset_Sintetico_Malha.csv
 │   └── requirements.txt
 │
+├── docs/
+│   ├── HISTORIAS_USUARIO.md
+│   ├── COMO_EXECUTAR.md
+│   ├── PROTOTIPO.md
+│   └── ENTREGAS_POO.md
+│
 ├── pom.xml
 ├── README.md
 └── LICENSE
@@ -308,17 +271,32 @@ codigo-vermelho/
 
 ---
 
-## 👥 Equipe Rota Vital
+## 📦 Entregas do Projeto
+ 
+📄 **Índice completo de artefatos por entrega (POO):** [`docs/ENTREGAS_POO.md`](docs/ENTREGAS_POO.md)
 
-| Integrante                                 | Papel no Projeto                              | Disciplina Principal       | GitHub                                                 |
-| ------------------------------------------ | --------------------------------------------- | -------------------------- | ------------------------------------------------------ |
-| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto          | [@LarissamnLira](https://github.com/LarissamnLira)     |
-| **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | [@dioguis](https://github.com/dioguis)                 |
-| **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | [@thaynavercosa](https://github.com/thaynavercosa)     |
-| **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
-| **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | [@keziaguiar12](https://github.com/keziaguiar12)       |
-| **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | [@jaozinnm](https://github.com/jaozinnm)               |
+---
 
+ 
+## 👥 Equipe Código Vermelho
+ 
+| Integrante                                 | Papel no Projeto                              | Disciplina Principal       | E-mail                | GitHub                                                 |
+| ------------------------------------------ | --------------------------------------------- | --------------------------- | --------------------- | ------------------------------------------------------ |
+| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
+| **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | dfsa@cesar.school     | [@dioguis](https://github.com/dioguis)                 |
+| **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | tva@cesar.school      | [@thaynavercosa](https://github.com/thaynavercosa)     |
+| **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
+| **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
+| **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
+| **Isabela Karla de Araujo Silva**          | *A definir*                                   | *A definir*                 | ikas@cesar.school     | *A definir*                                             |
+ 
+ 
+### Membros anteriores / novos
+ 
+| Nome | E-mail | Data de entrada | Data de saída | Situação |
+|---|---|---|---|---|
+| Isabela Karla de Araujo Silva | ikas@cesar.school | *[preencher data]* | — | Novo membro |
+ 
 ---
 
 ## 📄 Licença
@@ -329,7 +307,7 @@ Este projeto está licenciado sob a **MIT License**. Consulte o arquivo [`LICENS
 
 <div align="center">
 
-### 🩸 Rota Vital — Código Vermelho
+### 🩸 Código Vermelho
 
 **Transformando restrições técnicas em inteligência logística para a gestão de hemocomponentes.**
 
