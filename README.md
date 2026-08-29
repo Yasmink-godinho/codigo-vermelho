@@ -93,15 +93,15 @@ Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, 
 | **US06** | Painel Descritivo       | Análise estatística do consumo e da variabilidade da demanda por tipo sanguíneo.                   |
 | **US08** | Matching Imunológico    | Verificação da compatibilidade sanguínea entre doadores, bolsas e receptores.                      |
 
-📄 **Detalhamento completo (formato BDD / 3Cs):** [`docs/HISTORIAS_USUARIO.md`](docs/HISTORIAS_USUARIO.md)
+**➡️ [HISTORIAS_USUARIO.md](docs/HISTORIAS_USUARIO.md) - Detalhamento completo (formato BDD / 3Cs)**
 
 ---
 
-## 🎨 Protótipo
- 
-O protótipo do sistema desenvolvido no Figma.
- 
-📄 **Link do protótipo, mapeamento telas × histórias e screencast:** [`docs/PROTOTIPO.md`](docs/PROTOTIPO.md)
+## 🎨  Interface e Experiência
+
+>  Confira o protótipo mapeamento telas × histórias e screencast
+
+**➡️ [PROTOTIPO.md](docs/PROTOTIPO.md) - Protótipo de Interface do Código Vermelho**
  
 ---
 
@@ -231,7 +231,7 @@ Para executar o projeto localmente, serão necessários:
 * Python 3.x;
 * Git.
 
-📄 **Guia completo e solução de problemas:** [`docs/COMO_EXECUTAR.md`](docs/COMO_EXECUTAR.md)
+**➡️ [COMO_EXECUTAR.md](docs/COMO_EXECUTAR.md) - Guia completo e solução de problemas**
 
 ---
  
@@ -272,8 +272,8 @@ codigo-vermelho/
 ---
 
 ## 📦 Entregas do Projeto
- 
-📄 **Índice completo de artefatos por entrega (POO):** [`docs/ENTREGAS_POO.md`](docs/ENTREGAS_POO.md)
+
+**➡️ [ENTREGAS_POO.md](docs/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
 
 ---
 
