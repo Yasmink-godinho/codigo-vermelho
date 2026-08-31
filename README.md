@@ -20,15 +20,24 @@ Projeto Integrador desenvolvido para o **3º semestre de Análise e Desenvolvime
 
 ## 📌 Sobre o Projeto
 
+### 🩸 Código Vermelho
+**Sistema Inteligente para Gestão e Logística de Hemocomponentes**
+
 O **Código Vermelho** é uma aplicação web de inteligência logística para a **gestão e distribuição de hemocomponentes** entre hemocentros e unidades hospitalares.
 
-A plataforma centraliza informações como estoque, validade, consumo, localização e solicitações hospitalares, auxiliando na identificação de bolsas compatíveis e na definição da melhor alternativa para sua distribuição, considerando urgência, validade, rota, tempo e condições de transporte.
+A plataforma centraliza informações de estoque, validade, consumo, localização e solicitações hospitalares, auxiliando na identificação de bolsas compatíveis e na definição da melhor alternativa para sua distribuição, considerando urgência, validade, rota, tempo e condições de transporte.
 
-O principal diferencial da solução é a **Rede Inteligente de Redistribuição de Hemocomponentes**. A partir dos dados de estoque e consumo das instituições participantes, o sistema identifica riscos de desabastecimento e oportunidades de redistribuição, buscando antecipar problemas em vez de apenas reagir às solicitações.
+**🚨 Diferencial**
 
-Quando identifica uma oportunidade, o sistema gera uma recomendação explicável, indicando origem, destino, quantidade e os fatores que justificam a decisão, apoiando a tomada de decisão logística.
+O principal diferencial do Código Vermelho é a **Rede Inteligente de Redistribuição de Hemocomponentes**.
+
+Em vez de apenas reagir às solicitações, o sistema analisa os estoques e o histórico de consumo das instituições participantes para identificar e antecipar riscos de desabastecimento e encontrar oportunidades de redistribuição dentro da rede.
+
+Quando uma oportunidade é identificada, o sistema gera uma recomendação explicável, apresentando a origem, destino, quantidade e os fatores que justificam a decisão, como nível de estoque, demanda, validade e viabilidade logística.
 
 O projeto integra conhecimentos de Programação Orientada a Objetos, Spring Boot, algoritmos e estruturas de dados, grafos, estatística, concorrência, redes de computadores, CI/CD e computação em nuvem, aplicados a um problema de logística na área da saúde.
+
+> **Em resumo:** o Código Vermelho busca transformar a gestão de hemocomponentes de uma operação reativa em uma operação preventiva e inteligente, auxiliando na distribuição adequada dos recursos disponíveis.
 
 > 🚀 **Status:** Em desenvolvimento.
 
