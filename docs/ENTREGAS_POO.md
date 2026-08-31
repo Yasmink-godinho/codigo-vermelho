@@ -19,7 +19,7 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 |---|---|---|
 | Histórias de usuário (BDD) | 10 histórias no padrão 3Cs, com cenários Dado/Quando/Então | [Acessar](HISTORIAS_USUARIO.md) |
 | Protótipo Lo-Fi (Figma) | Protótipo navegável cobrindo as 10 histórias | [Acessar](https://prove-great-63780164.figma.site) |
-| Screencast do protótipo | Vídeo explicando cada história implementada no protótipo | [Acessar](#) *(pendente)* |
+| Screencast do protótipo | Vídeo explicando cada história implementada no protótipo | [Acessar](https://youtu.be/r1TicZb19cM) |
 
 ---
 
