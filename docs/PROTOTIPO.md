@@ -54,5 +54,4 @@ O protótipo contempla **2 perfis de acesso**:
 
 ---
 
-## 📸 Capturas de tela
 
