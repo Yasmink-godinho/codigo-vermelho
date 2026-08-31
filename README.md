@@ -20,11 +20,15 @@ Projeto Integrador desenvolvido para o **3º semestre de Análise e Desenvolvime
 
 ## 📌 Sobre o Projeto
 
-O **Rota Vital — Código Vermelho** é uma aplicação voltada à **gestão e distribuição logística de hemocomponentes** entre hemocentros e unidades hospitalares.
+O **Código Vermelho** é uma aplicação web de inteligência logística para a **gestão e distribuição de hemocomponentes** entre hemocentros e unidades hospitalares.
 
-A solução busca centralizar informações de estoque, validade, consumo e localização das unidades, utilizando regras de negócio, algoritmos e indicadores para apoiar a tomada de decisão logística.
+A plataforma centraliza informações como estoque, validade, consumo, localização e solicitações hospitalares, auxiliando na identificação de bolsas compatíveis e na definição da melhor alternativa para sua distribuição, considerando urgência, validade, rota, tempo e condições de transporte.
 
-O projeto integra diferentes áreas de conhecimento do curso de ADS, combinando desenvolvimento de software, algoritmos, estatística, sistemas operacionais e redes de computadores.
+O principal diferencial da solução é a **Rede Inteligente de Redistribuição de Hemocomponentes**. A partir dos dados de estoque e consumo das instituições participantes, o sistema identifica riscos de desabastecimento e oportunidades de redistribuição, buscando antecipar problemas em vez de apenas reagir às solicitações.
+
+Quando identifica uma oportunidade, o sistema gera uma recomendação explicável, indicando origem, destino, quantidade e os fatores que justificam a decisão, apoiando a tomada de decisão logística.
+
+O projeto integra conhecimentos de Programação Orientada a Objetos, Spring Boot, algoritmos e estruturas de dados, grafos, estatística, concorrência, redes de computadores, CI/CD e computação em nuvem, aplicados a um problema de logística na área da saúde.
 
 > 🚀 **Status:** Em desenvolvimento.
 
@@ -35,13 +39,14 @@ O projeto integra diferentes áreas de conhecimento do curso de ADS, combinando 
 O sistema tem como principais objetivos:
 
 * Monitorar o estoque de hemocomponentes nas unidades da rede;
-* Identificar situações de estoque crítico;
-* Priorizar bolsas próximas do vencimento;
-* Apoiar a redistribuição de bolsas entre unidades;
-* Considerar compatibilidade sanguínea nas movimentações;
-* Otimizar rotas de transporte;
-* Analisar o comportamento histórico do consumo;
-* Apresentar indicadores para apoio à tomada de decisão.
+* Identificar e antecipar situações de estoque crítico e risco de desabastecimento;
+* Priorizar bolsas com menor prazo de validade;
+* Verificar quais bolsas são compatíveis com cada solicitação hospitalar;
+* Apoiar a redistribuição de hemocomponentes entre unidades da rede;
+* Otimizar rotas de transporte considerando tempo e condições da cadeia fria;
+* Analisar o histórico de consumo para identificar padrões e necessidades;
+* Gerar recomendações explicáveis para apoiar a tomada de decisão logística;
+* Apresentar indicadores de estoque, demanda e transporte.
 
 ---
 
