@@ -86,19 +86,20 @@ Dado que a unidade de destino não possui nenhuma conexão com a malha, quando a
 
 ---
 
-## US06 — Painel de Análise Descritiva
+## US06 — Análise de Consumo e Risco de Desabastecimento
 
-**Cartão:** Como Gestora da Hemorrede, eu gostaria de visualizar indicadores de consumo médio e dispersão do estoque, para entender a dinâmica operacional da rede.
+**Cartão:** Como Gestora da Hemorrede, eu gostaria de visualizar indicadores de consumo e projeções de estoque, para identificar antecipadamente possíveis situações de desabastecimento.
 
-**Conversa:** O PO exige que o painel calcule, por tipo sanguíneo: consumo médio semanal, desvio padrão e coeficiente de variação (CV), classificando a variabilidade como Estável (CV < 15%), Moderadamente Instável (15% ≤ CV < 30%) ou Alta Instabilidade (CV ≥ 30%).
+**Conversa:** O PO define que o sistema deve analisar o histórico de consumo por tipo sanguíneo, calculando consumo médio semanal, desvio padrão e coeficiente de variação (CV). A partir do consumo e do estoque atual, o sistema deve estimar a evolução do estoque e identificar situações em que uma unidade possa atingir seu estoque mínimo de segurança, classificando o nível de risco.
 
 **Cenários de validação:**
 
-**Cenário 1 (Positivo): Painel com dados suficientes**
-Dado que há histórico de consumo registrado para um tipo sanguíneo, quando a Gestora acessa o painel de indicadores, então o sistema exibe consumo médio, desvio padrão, coeficiente de variação e a classificação de estabilidade correspondente.
+**Cenário 1 (Positivo): Identificação de risco**
+Dado que existe histórico de consumo e estoque registrado para uma unidade, quando a Gestora acessa o painel de análise, então o sistema exibe os indicadores de consumo, a projeção do estoque e o nível de risco de desabastecimento identificado.
 
-**Cenário 2 (Negativo): Sem histórico suficiente**
-Dado que um tipo sanguíneo não possui histórico de consumo registrado, quando a Gestora acessa o painel de indicadores para esse tipo, então o sistema exibe a mensagem "Dados insuficientes para gerar estatísticas".
+**Cenário 2 (Negativo): Dados insuficientes**
+Dado que uma unidade não possui histórico de consumo suficiente, quando a Gestora acessa o painel de análise, então o sistema informa que não há dados suficientes para realizar a análise de risco.
+
 
 ---
 
