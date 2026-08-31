@@ -287,20 +287,20 @@ codigo-vermelho/
  
 | Integrante                                 | Papel no Projeto                              | Disciplina Principal       | E-mail                | GitHub                                                 |
 | ------------------------------------------ | --------------------------------------------- | --------------------------- | --------------------- | ------------------------------------------------------ |
-| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
+| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto (Projetos 3)          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
 | **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | dfsa@cesar.school     | [@dioguis](https://github.com/dioguis)                 |
 | **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | tva@cesar.school      | [@thaynavercosa](https://github.com/thaynavercosa)     |
 | **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
 | **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
 | **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Isabela Karla de Araujo Silva**          | *A definir*                                   | *A definir*                 | ikas@cesar.school     | *A definir*                                             |
+| **Isabela Karla de Araujo Silva**          | *A definir*                                   | RSD — Redes                | ikas@cesar.school     | *A definir*                                             |
  
  
 ### Membros anteriores / novos
  
 | Nome | E-mail | Data de entrada | Data de saída | Situação |
 |---|---|---|---|---|
-| Isabela Karla de Araujo Silva | ikas@cesar.school | *[preencher data]* | — | Novo membro |
+| Isabela Karla de Araujo Silva | ikas@cesar.school | 25 de Agosto de 2026 | — | Novo membro |
  
 ---
 
