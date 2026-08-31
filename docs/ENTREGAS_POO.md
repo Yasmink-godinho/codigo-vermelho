@@ -8,7 +8,7 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 
 | Item | Descrição | Link |
 |---|---|---|
-| Planilha de equipe | Definição da equipe, nome e descrição do produto | [Acessar](#) |
+| Planilha de equipe | Definição da equipe, nome e descrição do produto | [Acessar](https://docs.google.com/spreadsheets/d/1q25qY6KY9P1F4vkZEd0TRMauqUbPjaLL/edit?gid=1147177085#gid=1147177085) |
 | Repositório GitHub | Projeto público criado | [Acessar](https://github.com/Yasmink-godinho/codigo-vermelho) |
 
 ---
@@ -17,9 +17,9 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 
 | Item | Descrição | Link |
 |---|---|---|
-| Histórias de usuário (BDD) | 10 histórias no padrão 3Cs, com cenários Dado/Quando/Então | [Acessar](docs/HISTORIAS_USUARIO.md) |
-| Protótipo Lo-Fi (Figma) | Protótipo navegável cobrindo as 10 histórias | [Acessar](#) *(pendente)* |
-| Screencast do protótipo | Vídeo explicando cada história implementada no protótipo | [Acessar](#) *(pendente)* |
+| Histórias de usuário (BDD) | 10 histórias no padrão 3Cs, com cenários Dado/Quando/Então | [Acessar](HISTORIAS_USUARIO.md) |
+| Protótipo Lo-Fi (Figma) | Protótipo navegável cobrindo as 10 histórias | [Acessar](https://prove-great-63780164.figma.site) |
+| Screencast do protótipo | Vídeo explicando cada história implementada no protótipo | [Acessar](https://youtu.be/r1TicZb19cM) |
 
 ---
 

@@ -54,6 +54,4 @@ O protótipo contempla **2 perfis de acesso**:
 
 ---
 
-## 📸 Capturas de tela
 
-*(Adicionar aqui as imagens finais do protótipo antes da entrega, ou linkar para uma pasta `docs/assets/prototipo/` no repositório.)*

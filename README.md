@@ -20,11 +20,24 @@ Projeto Integrador desenvolvido para o **3º semestre de Análise e Desenvolvime
 
 ## 📌 Sobre o Projeto
 
-O **Rota Vital — Código Vermelho** é uma aplicação voltada à **gestão e distribuição logística de hemocomponentes** entre hemocentros e unidades hospitalares.
+### 🩸 Código Vermelho
+**Sistema Inteligente para Gestão e Logística de Hemocomponentes**
 
-A solução busca centralizar informações de estoque, validade, consumo e localização das unidades, utilizando regras de negócio, algoritmos e indicadores para apoiar a tomada de decisão logística.
+O **Código Vermelho** é uma aplicação web de inteligência logística para a **gestão e distribuição de hemocomponentes** entre hemocentros e unidades hospitalares.
 
-O projeto integra diferentes áreas de conhecimento do curso de ADS, combinando desenvolvimento de software, algoritmos, estatística, sistemas operacionais e redes de computadores.
+A plataforma centraliza informações de estoque, validade, consumo, localização e solicitações hospitalares, auxiliando na identificação de bolsas compatíveis e na definição da melhor alternativa para sua distribuição, considerando urgência, validade, rota, tempo e condições de transporte.
+
+**🚨 Diferencial**
+
+O principal diferencial do Código Vermelho é a **Rede Inteligente de Redistribuição de Hemocomponentes**.
+
+Em vez de apenas reagir às solicitações, o sistema analisa os estoques e o histórico de consumo das instituições participantes para identificar e antecipar riscos de desabastecimento e encontrar oportunidades de redistribuição dentro da rede.
+
+Quando uma oportunidade é identificada, o sistema gera uma recomendação explicável, apresentando a origem, destino, quantidade e os fatores que justificam a decisão, como nível de estoque, demanda, validade e viabilidade logística.
+
+O projeto integra conhecimentos de Programação Orientada a Objetos, Spring Boot, algoritmos e estruturas de dados, grafos, estatística, concorrência, redes de computadores, CI/CD e computação em nuvem, aplicados a um problema de logística na área da saúde.
+
+> **Em resumo:** o Código Vermelho busca transformar a gestão de hemocomponentes de uma operação reativa em uma operação preventiva e inteligente, auxiliando na distribuição adequada dos recursos disponíveis.
 
 > 🚀 **Status:** Em desenvolvimento.
 
@@ -35,13 +48,14 @@ O projeto integra diferentes áreas de conhecimento do curso de ADS, combinando 
 O sistema tem como principais objetivos:
 
 * Monitorar o estoque de hemocomponentes nas unidades da rede;
-* Identificar situações de estoque crítico;
-* Priorizar bolsas próximas do vencimento;
-* Apoiar a redistribuição de bolsas entre unidades;
-* Considerar compatibilidade sanguínea nas movimentações;
-* Otimizar rotas de transporte;
-* Analisar o comportamento histórico do consumo;
-* Apresentar indicadores para apoio à tomada de decisão.
+* Identificar e antecipar situações de estoque crítico e risco de desabastecimento;
+* Priorizar bolsas com menor prazo de validade;
+* Verificar quais bolsas são compatíveis com cada solicitação hospitalar;
+* Apoiar a redistribuição de hemocomponentes entre unidades da rede;
+* Otimizar rotas de transporte considerando tempo e condições da cadeia fria;
+* Analisar o histórico de consumo para identificar padrões e necessidades;
+* Gerar recomendações explicáveis para apoiar a tomada de decisão logística;
+* Apresentar indicadores de estoque, demanda e transporte.
 
 ---
 
@@ -282,20 +296,20 @@ codigo-vermelho/
  
 | Integrante                                 | Papel no Projeto                              | Disciplina Principal       | E-mail                | GitHub                                                 |
 | ------------------------------------------ | --------------------------------------------- | --------------------------- | --------------------- | ------------------------------------------------------ |
-| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
+| **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto (Projetos 3)          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
 | **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | dfsa@cesar.school     | [@dioguis](https://github.com/dioguis)                 |
 | **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | tva@cesar.school      | [@thaynavercosa](https://github.com/thaynavercosa)     |
 | **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
 | **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
 | **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Isabela Karla de Araujo Silva**          | *A definir*                                   | *A definir*                 | ikas@cesar.school     | *A definir*                                             |
+| **Isabela Karla de Araujo Silva**          | *A definir*                                   | RSD — Redes                | ikas@cesar.school     | *A definir*                                             |
  
  
 ### Membros anteriores / novos
  
 | Nome | E-mail | Data de entrada | Data de saída | Situação |
 |---|---|---|---|---|
-| Isabela Karla de Araujo Silva | ikas@cesar.school | *[preencher data]* | — | Novo membro |
+| Isabela Karla de Araujo Silva | ikas@cesar.school | 25 de Agosto de 2026 | — | Novo membro |
  
 ---
 
