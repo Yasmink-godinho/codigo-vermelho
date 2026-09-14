@@ -289,6 +289,12 @@ codigo-vermelho/
 
 **➡️ [ENTREGAS_POO.md](docs/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
 
+# Sprint 01 - Definição da equipe e da solução.
+# Sprint 02-03 - Modelagem e definição de dados/algoritmos.
+# Sprint 04-05 - Setup de infraestrutura e início dos algoritmos.
+# Sprint 06-07 - Acompanhamento integração.
+# Sprint 08-09 - Checkpoint
+
 ---
 
  
@@ -302,7 +308,7 @@ codigo-vermelho/
 | **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
 | **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
 | **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Isabela Karla de Araujo Silva**          | *A definir*                                   | RSD — Redes                | ikas@cesar.school     | *A definir*                                             |
+| **Isabela Karla de Araujo Silva**          | *A definir*                                   | Infraestrutura de Software               | ikas@cesar.school     | *A definir*                                             |
  
  
 ### Membros anteriores / novos
