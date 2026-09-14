@@ -13,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.JoinColumn;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -50,8 +51,9 @@ public class Instituicao {
      * Estoque minimo de seguranca por tipo sanguineo (US01).
      * Ex: O+ -> 20 (unidades minimas antes de disparar alerta critico).
      */
+
     @ElementCollection
-    @CollectionTable(name = "instituicao_estoque_minimo", joinColumns = @Column(name = "instituicao_id"))
+    @CollectionTable(name = "instituicao_estoque_minimo", joinColumns = @JoinColumn(name = "instituicao_id"))
     @MapKeyEnumerated(EnumType.STRING)
     @Column(name = "quantidade_minima")
     private Map<TipoSanguineo, Integer> estoqueMinimoPorTipo = new EnumMap<>(TipoSanguineo.class);
