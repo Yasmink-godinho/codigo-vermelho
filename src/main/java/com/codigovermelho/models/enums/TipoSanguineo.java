@@ -1,4 +1,6 @@
 package com.codigovermelho.models.enums;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Os 8 tipos sanguineos ABO/Rh utilizados no sistema.
@@ -22,7 +24,20 @@ public enum TipoSanguineo {
         this.label = label;
     }
 
+    @JsonValue
     public String getLabel() {
         return label;
     }
+
+    @JsonCreator
+    public static TipoSanguineo fromString(String value) {
+        if (value == null) return null;
+        for (TipoSanguineo tipo : values()) {
+            if (tipo.label.equalsIgnoreCase(value.trim()) || tipo.name().equalsIgnoreCase(value.trim())) {
+                return tipo;
+            }
+        }
+        throw new IllegalArgumentException("Tipo sanguíneo inválido: " + value);
+    }
+
 }
