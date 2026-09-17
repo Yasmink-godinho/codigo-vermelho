@@ -1,6 +1,20 @@
-package com.codigovermelho.service;
+package com.codigovermelho.services;
 
+import com.codigovermelho.models.Instituicao;
+import com.codigovermelho.models.LoteHemocomponente;
+import com.codigovermelho.models.enums.TipoComponente;
+import com.codigovermelho.models.enums.TipoSanguineo;
+import com.codigovermelho.repositories.InstituicaoRepository;
+import com.codigovermelho.repositories.LoteHemocomponenteRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+@Service
 public class LoteHemocomponenteService {
+
     private final LoteHemocomponenteRepository loteRepository;
     private final InstituicaoRepository instituicaoRepository;
 
@@ -23,8 +37,26 @@ public class LoteHemocomponenteService {
         return loteRepository.findByInstituicaoId(instituicaoId);
     }
 
-    public List<LoteHemocomponente> filaFefo(TipoSanguineo tipoSanguineo) {
-        return loteRepository.findByTipoSanguineoOrderByDataValidadeAsc(tipoSanguineo);
+    /**
+     * Consulta da Fila FEFO (US03):
+     * Filtra opcionalmente por tipo sanguíneo e/ou instituição,
+     * trazendo os lotes ordenados por data de validade crescente e ignorando os vencidos.
+     */
+    public List<LoteHemocomponente> filaFefo(TipoSanguineo tipoSanguineo, Long instituicaoId) {
+        List<LoteHemocomponente> lotes;
+
+        if (instituicaoId != null && tipoSanguineo != null) {
+            lotes = loteRepository.findByInstituicaoIdAndTipoSanguineoOrderByDataValidadeAsc(instituicaoId, tipoSanguineo);
+        } else if (tipoSanguineo != null) {
+            lotes = loteRepository.findByTipoSanguineoOrderByDataValidadeAsc(tipoSanguineo);
+        } else if (instituicaoId != null) {
+            lotes = loteRepository.findByInstituicaoId(instituicaoId);
+        } else {
+            lotes = loteRepository.findAll();
+        }
+
+        return lotes.stream()
+                .filter(lote -> !lote.isVencido())
+                .toList();
     }
-}
 }
