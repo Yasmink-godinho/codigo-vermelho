@@ -1,4 +1,4 @@
-# 📋 Histórias de Usuário — Código Vermelho
+# 📋 Histórias de Usuário — Rota Vital / Código Vermelho
 
 Este documento contém as histórias de usuário do projeto, escritas no padrão **3Cs (Cartão, Conversa, Confirmação)**, com os cenários de validação especificados em **BDD (Behaviour Driven Development)** no formato Dado–Quando–Então.
 
@@ -40,23 +40,23 @@ Dado que o Responsável Hospitalar está registrando um novo lote, quando ele in
 
 ## US03 — Fila de Prioridade FEFO
 
-**Cartão:** Como Operador do Sistema, eu gostaria de visualizar a fila de bolsas disponíveis priorizada pela menor data de validade, para evitar perdas e descartes desnecessários.
+**Cartão:** Como Operador do Sistema, eu gostaria de visualizar a fila de lotes disponíveis priorizada pela menor data de validade, para evitar perdas e descartes desnecessários.
 
-**Conversa:** O PO define que a fila deve seguir a regra **FEFO (First Expire, First Out)**: bolsas mais próximas do vencimento aparecem primeiro. A tela permite filtrar por tipo sanguíneo e por instituição, e destaca visualmente bolsas com vencimento crítico (≤ 3 dias).
+**Conversa:** O PO define que a fila deve seguir a regra **FEFO (First Expire, First Out)**: lotes mais próximos do vencimento aparecem primeiro. A tela permite filtrar por tipo sanguíneo e por instituição, e destaca visualmente lotes com vencimento crítico (≤ 3 dias).
 
 **Cenários de validação:**
 
 **Cenário 1 (Positivo): Ordenação FEFO**
-Dado que existem bolsas cadastradas com validades diferentes para um tipo sanguíneo, quando o Operador acessa a fila de prioridade, então as bolsas são exibidas em ordem crescente de data de validade.
+Dado que existem lotes cadastrados com validades diferentes para um tipo sanguíneo, quando o Operador acessa a fila de prioridade, então os lotes são exibidos em ordem crescente de data de validade.
 
-**Cenário 2 (Negativo): Nenhuma bolsa disponível**
-Dado que não há bolsas cadastradas para o filtro selecionado (tipo sanguíneo e/ou instituição), quando o Operador acessa a fila de prioridade, então o sistema exibe a mensagem "Nenhuma bolsa disponível para este filtro".
+**Cenário 2 (Negativo): Nenhum lote disponível**
+Dado que não há lotes cadastrados para o filtro selecionado (tipo sanguíneo e/ou instituição), quando o Operador acessa a fila de prioridade, então o sistema exibe a mensagem "Nenhum lote disponível para este filtro".
 
 ---
 
 ## US04 — Emissão de Requisições Hospitalares
 
-**Cartão:** Como Responsável Hospitalar, eu gostaria de emitir requisições de bolsas informando tipo, volume e urgência, para suprir a demanda da minha unidade.
+**Cartão:** Como Responsável Hospitalar, eu gostaria de emitir requisições de lotes informando tipo, volume e urgência, para suprir a demanda da minha unidade.
 
 **Conversa:** O PO especifica que toda requisição deve conter instituição solicitante, tipo sanguíneo, componente, volume e nível de urgência (Rotina, Prioritária ou Emergência), além de um campo opcional de observações clínicas. A requisição entra no sistema com status "Pendente" e timestamp de criação.
 
@@ -72,7 +72,7 @@ Dado que o Responsável Hospitalar está emitindo uma requisição, quando ele t
 
 ## US05 — Roteirização Logística Otimizada
 
-**Cartão:** Como Gestora da Hemorrede, eu gostaria de calcular a rota mais rápida entre unidades, para garantir entrega ágil das bolsas.
+**Cartão:** Como Gestora da Hemorrede, eu gostaria de calcular a rota mais rápida entre unidades, para garantir entrega ágil dos lotes.
 
 **Conversa:** O PO define que o cálculo de rota deve utilizar um algoritmo de caminho mínimo (Dijkstra) sobre o grafo da malha logística, retornando distância, tempo estimado e o transportador designado.
 
@@ -86,20 +86,19 @@ Dado que a unidade de destino não possui nenhuma conexão com a malha, quando a
 
 ---
 
-## US06 — Análise de Consumo e Risco de Desabastecimento
+## US06 — Painel de Análise Descritiva
 
-**Cartão:** Como Gestora da Hemorrede, eu gostaria de visualizar indicadores de consumo e projeções de estoque, para identificar antecipadamente possíveis situações de desabastecimento.
+**Cartão:** Como Gestora da Hemorrede, eu gostaria de visualizar indicadores de consumo médio e dispersão do estoque, para entender a dinâmica operacional da rede.
 
-**Conversa:** O PO define que o sistema deve analisar o histórico de consumo por tipo sanguíneo, calculando consumo médio semanal, desvio padrão e coeficiente de variação (CV). A partir do consumo e do estoque atual, o sistema deve estimar a evolução do estoque e identificar situações em que uma unidade possa atingir seu estoque mínimo de segurança, classificando o nível de risco.
+**Conversa:** O PO exige que o painel calcule, por tipo sanguíneo: consumo médio semanal, desvio padrão e coeficiente de variação (CV), classificando a variabilidade como Estável (CV < 15%), Moderadamente Instável (15% ≤ CV < 30%) ou Alta Instabilidade (CV ≥ 30%).
 
 **Cenários de validação:**
 
-**Cenário 1 (Positivo): Identificação de risco**
-Dado que existe histórico de consumo e estoque registrado para uma unidade, quando a Gestora acessa o painel de análise, então o sistema exibe os indicadores de consumo, a projeção do estoque e o nível de risco de desabastecimento identificado.
+**Cenário 1 (Positivo): Painel com dados suficientes**
+Dado que há histórico de consumo registrado para um tipo sanguíneo, quando a Gestora acessa o painel de indicadores, então o sistema exibe consumo médio, desvio padrão, coeficiente de variação e a classificação de estabilidade correspondente.
 
-**Cenário 2 (Negativo): Dados insuficientes**
-Dado que uma unidade não possui histórico de consumo suficiente, quando a Gestora acessa o painel de análise, então o sistema informa que não há dados suficientes para realizar a análise de risco.
-
+**Cenário 2 (Negativo): Sem histórico suficiente**
+Dado que um tipo sanguíneo não possui histórico de consumo registrado, quando a Gestora acessa o painel de indicadores para esse tipo, então o sistema exibe a mensagem "Dados insuficientes para gerar estatísticas".
 
 ---
 
@@ -121,17 +120,17 @@ Dado que uma carga está em trânsito, quando o sistema recebe uma leitura de te
 
 ## US08 — Matching Imunológico ABO/Rh
 
-**Cartão:** Como Sistema, eu preciso validar a compatibilidade imunológica entre requisições e bolsas disponíveis, para evitar alocações incompatíveis.
+**Cartão:** Como Sistema, eu preciso validar a compatibilidade imunológica entre requisições e lotes disponíveis, para evitar alocações incompatíveis.
 
-**Conversa:** O PO define que a checagem de compatibilidade deve seguir as regras didáticas de compatibilidade ABO/Rh. Quando uma bolsa candidata não é compatível, o sistema deve sugerir automaticamente alternativas compatíveis disponíveis no estoque.
+**Conversa:** O PO define que a checagem de compatibilidade deve seguir as regras didáticas de compatibilidade ABO/Rh. Quando um lote candidato não é compatível, o sistema deve sugerir automaticamente alternativas compatíveis disponíveis no estoque.
 
 **Cenários de validação:**
 
 **Cenário 1 (Positivo): Compatibilidade válida**
-Dado que existe uma requisição de tipo sanguíneo compatível com uma bolsa disponível, quando o sistema verifica a compatibilidade, então a alocação é confirmada e liberada para roteirização.
+Dado que existe uma requisição de tipo sanguíneo compatível com um lote disponível, quando o sistema verifica a compatibilidade, então a alocação é confirmada e liberada para roteirização.
 
 **Cenário 2 (Negativo): Incompatibilidade**
-Dado que a bolsa candidata é imunologicamente incompatível com a requisição, quando o sistema verifica a compatibilidade, então a alocação é bloqueada e o sistema lista bolsas alternativas compatíveis disponíveis no estoque.
+Dado que o lote candidato é imunologicamente incompatível com a requisição, quando o sistema verifica a compatibilidade, então a alocação é bloqueada e o sistema lista lotes alternativos compatíveis disponíveis no estoque.
 
 ---
 
