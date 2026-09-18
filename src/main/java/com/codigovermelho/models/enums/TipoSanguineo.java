@@ -1,9 +1,10 @@
 package com.codigovermelho.models.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Os 8 tipos sanguineos ABO/Rh utilizados no sistema.
- * O campo "label" guarda a representacao usual (ex: "O+") para exibicao,
- * ja que o nome do enum em Java nao pode conter simbolos como + ou -.
  */
 public enum TipoSanguineo {
 
@@ -22,7 +23,19 @@ public enum TipoSanguineo {
         this.label = label;
     }
 
+    @JsonValue
     public String getLabel() {
         return label;
+    }
+
+    @JsonCreator
+    public static TipoSanguineo fromLabel(String value) {
+        for (TipoSanguineo tipo : values()) {
+            if (tipo.label.equalsIgnoreCase(value)) {
+                return tipo;
+            }
+        }
+
+        throw new IllegalArgumentException("Tipo sanguineo invalido: " + value);
     }
 }

@@ -54,6 +54,13 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -67,6 +74,26 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+          Os starters de teste modulares do Spring Boot 4 (acima) NAO trazem
+          JUnit Jupiter nem Mockito por padrao — isso so acontece com o
+          starter classico "spring-boot-starter-test", que este projeto nao
+          usa (foi trocado pelos starters modulares por disciplina/POM).
+          Os testes de Controller usam org.junit.jupiter.api.* e
+          org.mockito.Mockito.*, entao essas duas dependencias precisam ser
+          declaradas explicitamente, ou o build falha na compilacao dos
+          testes por import nao resolvido.
+        -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

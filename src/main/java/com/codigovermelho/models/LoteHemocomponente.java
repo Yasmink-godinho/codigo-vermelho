@@ -53,7 +53,7 @@ public class LoteHemocomponente {
     @Column(nullable = false)
     private Integer quantidade;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicao;
 
