@@ -24,7 +24,12 @@ public class Requisicao {
     @Column(nullable = false, unique = true, updatable = false)
     private String codigoRequisicao;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    // FetchType.EAGER (mesma decisao ja usada em LoteHemocomponente.instituicao):
+    // o projeto roda com spring.jpa.open-in-view=false, entao um relacionamento
+    // LAZY aqui geraria LazyInitializationException ao serializar a resposta
+    // fora da transacao do Service. EAGER evita esse problema sem precisar
+    // mudar a arquitetura Service->Controller->DTO ja usada no restante do projeto.
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicaoSolicitante;
 

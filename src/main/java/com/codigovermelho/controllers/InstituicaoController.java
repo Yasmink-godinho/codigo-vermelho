@@ -23,21 +23,31 @@ public class InstituicaoController {
 
     @PostMapping
     public ResponseEntity<InstituicaoResponse> cadastrar(@Valid @RequestBody NovaInstituicaoRequest request) {
-        Instituicao instituicao = instituicaoService.salvar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(InstituicaoResponse.fromEntity(instituicao));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(InstituicaoResponse.fromEntity(instituicaoService.salvar(request)));
     }
 
     @GetMapping
-    public ResponseEntity<List<InstituicaoResponse>> listar() {
-        List<InstituicaoResponse> response = instituicaoService.listarTodas().stream()
-                .map(InstituicaoResponse::fromEntity)
-                .toList();
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<InstituicaoResponse>> listar(
+            @RequestParam(required = false) TipoInstituicao tipo) {
+        return ResponseEntity.ok(instituicaoService.listar(tipo).stream()
+                .map(InstituicaoResponse::fromEntity).toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<InstituicaoResponse> buscarPorId(@PathVariable Long id) {
-        Instituicao instituicao = instituicaoService.buscarPorId(id);
-        return ResponseEntity.ok(InstituicaoResponse.fromEntity(instituicao));
+        return ResponseEntity.ok(InstituicaoResponse.fromEntity(instituicaoService.buscarPorId(id)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<InstituicaoResponse> atualizar(
+            @PathVariable Long id, @Valid @RequestBody AtualizarInstituicaoRequest request) {
+        return ResponseEntity.ok(InstituicaoResponse.fromEntity(instituicaoService.atualizar(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        instituicaoService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }

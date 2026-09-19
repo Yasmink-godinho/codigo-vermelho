@@ -1,6 +1,6 @@
 # ✅ Validação de Dados das Funcionalidades
 
-Este documento define as regras de validação necessárias para cada entidade do domínio, usando **Jakarta Bean Validation** (dependência `Validation`, já incluída no `pom.xml`). As regras derivam diretamente dos cenários negativos já especificados em [`HISTORIAS_USUARIO.md`](HISTORIAS_USUARIO.md).
+Este documento define as regras de validação necessárias para as entradas da API. O projeto usa **Jakarta Bean Validation nos DTOs de entrada** e mantém as **regras de domínio nas entidades**, por meio dos setters existentes. Essa separação evita expor entidades JPA diretamente como contrato HTTP e preserva o encapsulamento já implementado.
 
 ---
 
@@ -13,7 +13,6 @@ Este documento define as regras de validação necessárias para cada entidade d
 | endereco | Obrigatório | `@NotBlank` | "Endereço é obrigatório" |
 | latitude | Entre -90 e 90 | `@NotNull @DecimalMin("-90.0") @DecimalMax("90.0")` | "Coordenadas inválidas" |
 | longitude | Entre -180 e 180 | `@NotNull @DecimalMin("-180.0") @DecimalMax("180.0")` | "Coordenadas inválidas" |
-| status | Obrigatório | `@NotNull` | "Status é obrigatório" |
 
 *(Referência: US01, Cenário 2 — coordenadas inválidas)*
 
@@ -23,7 +22,7 @@ Este documento define as regras de validação necessárias para cada entidade d
 
 | Campo | Regra | Anotação | Mensagem de erro |
 |---|---|---|---|
-| codigoLote | Obrigatório | `@NotBlank` | "Código do lote é obrigatório" |
+| codigoLote | Gerado automaticamente no `@PrePersist` | — | — |
 | tipoSanguineo | Obrigatório | `@NotNull` | "Tipo sanguíneo é obrigatório" |
 | componente | Obrigatório | `@NotNull` | "Componente é obrigatório" |
 | dataColeta | Obrigatória, não futura | `@NotNull @PastOrPresent` | "Data de coleta inválida" |

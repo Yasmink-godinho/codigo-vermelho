@@ -5,6 +5,7 @@ import com.codigovermelho.models.enums.TipoSanguineo;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -52,7 +53,7 @@ public class Instituicao {
      * Ex: O+ -> 20 (unidades minimas antes de disparar alerta critico).
      */
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "instituicao_estoque_minimo", joinColumns = @JoinColumn(name = "instituicao_id"))
     @MapKeyEnumerated(EnumType.STRING)
     @Column(name = "quantidade_minima")

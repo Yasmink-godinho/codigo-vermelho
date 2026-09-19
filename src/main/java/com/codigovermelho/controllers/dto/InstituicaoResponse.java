@@ -21,7 +21,7 @@ public record InstituicaoResponse(
                 inst.getEndereco(),
                 inst.getLatitude(),
                 inst.getLongitude(),
-                inst.getEstoqueMinimoPorTipo()
+                Map.copyOf(inst.getEstoqueMinimoPorTipo())
         );
     }
 }

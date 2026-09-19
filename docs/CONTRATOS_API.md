@@ -13,6 +13,8 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 | Cadastrar instituição | `POST /api/v1/instituicoes` | `201` sucesso · `400` coordenadas/campos inválidos |
 | Listar instituições | `GET /api/v1/instituicoes` | `200` |
 | Detalhar instituição | `GET /api/v1/instituicoes/{id}` | `200` · `404` não encontrada |
+| Atualizar instituição | `PUT /api/v1/instituicoes/{id}` | `200` · `400` dados inválidos · `404` não encontrada |
+| Remover instituição | `DELETE /api/v1/instituicoes/{id}` | `204` · `404` não encontrada |
 
 | Cenário da história | Contrato atende? | Como |
 |---|---|---|
@@ -28,7 +30,11 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 | Ação | Endpoint | Status esperado |
 |---|---|---|
 | Registrar lote | `POST /api/v1/instituicoes/{id}/lotes` | `201` · `400` validade retroativa |
-| Listar lotes de uma instituição | `GET /api/v1/instituicoes/{id}/lotes` | `200` |
+| Listar lotes de uma instituição | `GET /api/v1/instituicoes/{id}/lotes` | `200` · `404` instituição não encontrada |
+| Listar lotes com filtros | `GET /api/v1/lotes?tipoSanguineo={tipo}&componente={componente}&validadeAte={data}` | `200` |
+| Detalhar lote | `GET /api/v1/lotes/{id}` | `200` · `404` não encontrado |
+| Atualizar validade do lote | `PATCH /api/v1/lotes/{id}` | `200` · `400` validade inválida · `404` não encontrado |
+| Remover lote | `DELETE /api/v1/lotes/{id}` | `204` · `404` não encontrado |
 
 | Cenário da história | Contrato atende? | Como |
 |---|---|---|
@@ -36,6 +42,8 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 | Cenário 2 (validade retroativa) | ✅ | `POST` retorna `400` |
 
 **Status: ✅ Contrato completo**
+
+> **Decisão de implementação:** o modelo de domínio atual não possui um atributo `status` para lote. Por isso, o `PATCH` da U1 altera somente `validade`, que é o campo explicitamente editável na história US02. Não foi criado um status artificial apenas para satisfazer um filtro que não existe no modelo.
 
 ---
 

@@ -4,28 +4,26 @@ Levantamento dos endpoints, métodos HTTP, padrão de URLs e parâmetros necess�
 
 ## US01 — Cadastro de Unidades
 
-Cadastro de hemocentros e hospitais, incluindo localização e parâmetros de estoque.
-
 | Método | Caminho | Parâmetros | Descrição |
 |---|---|---|---|
-| `POST` | `/api/v1/unidades` | body: `nome`, `tipo` (`HEMOCENTRO`\|`HOSPITAL`\|`PONTO_COLETA`), `localizacao`, `capacidadeEstoque` | Cadastra uma nova unidade |
-| `GET` | `/api/v1/unidades` | query: `tipo`, `page`, `size` | Lista as unidades cadastradas |
-| `GET` | `/api/v1/unidades/{id}` | path: `id` | Consulta os detalhes de uma unidade |
-| `PUT` | `/api/v1/unidades/{id}` | path: `id`; body: `nome`, `tipo`, `localizacao`, `capacidadeEstoque` | Atualiza os dados de uma unidade |
-| `DELETE` | `/api/v1/unidades/{id}` | path: `id` | Remove uma unidade |
+| `POST` | `/api/v1/instituicoes` | body: `nome`, `tipo`, `endereco`, `latitude`, `longitude`, `estoqueMinimoPorTipo` | Cadastra uma nova instituição |
+| `GET` | `/api/v1/instituicoes` | query opcional: `tipo` | Lista as instituições cadastradas |
+| `GET` | `/api/v1/instituicoes/{id}` | path: `id` | Consulta os detalhes de uma instituição |
+| `PUT` | `/api/v1/instituicoes/{id}` | path: `id`; body com os mesmos campos do cadastro | Atualiza uma instituição |
+| `DELETE` | `/api/v1/instituicoes/{id}` | path: `id` | Remove uma instituição |
 
 ## US02 — Gestão de Inventário
 
-Registro e gerenciamento dos lotes de bolsas de sangue, incluindo validade e classificação ABO/Rh.
-
 | Método | Caminho | Parâmetros | Descrição |
 |---|---|---|---|
-| `POST` | `/api/v1/bolsas` | body: `unidadeId`, `tipoSanguineo`, `componente`, `dataColeta`, `validade` | Registra uma nova bolsa no estoque |
-| `GET` | `/api/v1/bolsas` | query: `tipoSanguineo`, `componente`, `validadeAte`, `status`, `page`, `size` | Lista bolsas do estoque com filtros |
-| `GET` | `/api/v1/bolsas/{id}` | path: `id` | Consulta os detalhes de uma bolsa |
-| `PATCH` | `/api/v1/bolsas/{id}` | path: `id`; body: `status`, `validade` (campos parciais) | Atualiza status/validade de uma bolsa |
-| `DELETE` | `/api/v1/bolsas/{id}` | path: `id` | Descarta/remove uma bolsa |
-| `GET` | `/api/v1/unidades/{id}/bolsas` | path: `id` (da unidade); query: `tipoSanguineo`, `status`, `page`, `size` | Consulta o estoque de uma unidade específica |
+| `POST` | `/api/v1/instituicoes/{id}/lotes` | body: `tipoSanguineo`, `componente`, `dataColeta`, `validade` opcional, `quantidade` | Registra um novo lote no estoque |
+| `GET` | `/api/v1/instituicoes/{id}/lotes` | path: `id` | Lista os lotes de uma instituição |
+| `GET` | `/api/v1/lotes` | query opcional: `tipoSanguineo`, `componente`, `validadeAte` | Lista lotes com filtros |
+| `GET` | `/api/v1/lotes/{id}` | path: `id` | Consulta um lote |
+| `PATCH` | `/api/v1/lotes/{id}` | path: `id`; body: `validade` | Atualiza a validade de um lote |
+| `DELETE` | `/api/v1/lotes/{id}` | path: `id` | Remove um lote |
+
+> **Decisão:** o modelo atual não possui `status` de lote. A implementação não inventa esse atributo; o `PATCH` da U1 altera somente `validade`, conforme a história US02 define como editável.
 
 ## US05 — Roteirização Logística
 

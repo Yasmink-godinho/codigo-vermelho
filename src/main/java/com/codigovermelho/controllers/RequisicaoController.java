@@ -1,7 +1,9 @@
 package com.codigovermelho.controllers;
 
+import com.codigovermelho.controllers.dto.RequisicaoResponse;
 import com.codigovermelho.models.Requisicao;
 import com.codigovermelho.models.enums.NivelUrgencia;
+import com.codigovermelho.models.enums.StatusRequisicao;
 import com.codigovermelho.models.enums.TipoComponente;
 import com.codigovermelho.models.enums.TipoSanguineo;
 import com.codigovermelho.services.RequisicaoService;
@@ -25,19 +27,22 @@ public class RequisicaoController {
                                         Integer volume, NivelUrgencia nivelUrgencia, String observacoes) {}
 
     @PostMapping
-    public ResponseEntity<Requisicao> emitir(@RequestBody NovaRequisicaoRequest request) {
+    public ResponseEntity<RequisicaoResponse> emitir(@RequestBody NovaRequisicaoRequest request) {
         Requisicao requisicao = requisicaoService.emitir(request.instituicaoId(), request.tipoSanguineo(),
                 request.componente(), request.volume(), request.nivelUrgencia(), request.observacoes());
-        return ResponseEntity.status(HttpStatus.CREATED).body(requisicao);
+        return ResponseEntity.status(HttpStatus.CREATED).body(RequisicaoResponse.fromEntity(requisicao));
     }
 
     @GetMapping
-    public ResponseEntity<List<Requisicao>> listar() {
-        return ResponseEntity.ok(requisicaoService.listarTodas());
+    public ResponseEntity<List<RequisicaoResponse>> listar(
+            @RequestParam(required = false) StatusRequisicao status,
+            @RequestParam(required = false) NivelUrgencia urgencia) {
+        return ResponseEntity.ok(requisicaoService.listar(status, urgencia).stream()
+                .map(RequisicaoResponse::fromEntity).toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Requisicao> detalhar(@PathVariable Long id) {
-        return ResponseEntity.ok(requisicaoService.buscarPorId(id));
+    public ResponseEntity<RequisicaoResponse> detalhar(@PathVariable Long id) {
+        return ResponseEntity.ok(RequisicaoResponse.fromEntity(requisicaoService.buscarPorId(id)));
     }
 }
