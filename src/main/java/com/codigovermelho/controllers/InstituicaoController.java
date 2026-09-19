@@ -1,10 +1,8 @@
 package com.codigovermelho.controllers;
 
-import com.codigovermelho.controllers.dto.AtualizarInstituicaoRequest;
 import com.codigovermelho.controllers.dto.InstituicaoResponse;
 import com.codigovermelho.controllers.dto.NovaInstituicaoRequest;
 import com.codigovermelho.models.Instituicao;
-import com.codigovermelho.models.enums.TipoInstituicao;
 import com.codigovermelho.services.InstituicaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
