@@ -1,10 +1,3 @@
-/*
- * Rota Vital - Codigo Vermelho
- * U1 - Indicadores e primeira analise descritiva (EST)
- * Le Dataset_Sintetico_Malha.csv (estoque) e Dataset_Requisicoes.csv (demanda)
- * e calcula os indicadores definidos em Indicadores_EST_U1.md
- */
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
