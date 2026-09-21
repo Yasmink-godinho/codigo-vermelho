@@ -22,9 +22,11 @@ jobs:
           cache: maven
 
       - name: Build com Maven (sem rodar testes)
+        working-directory: backend
         run: mvn -B clean package -DskipTests
 
       - name: Rodar testes
+        working-directory: backend
         run: mvn -B test
 
       - name: Publicar o .jar gerado
