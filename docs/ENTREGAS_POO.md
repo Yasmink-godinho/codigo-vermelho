@@ -28,9 +28,9 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 | Item | Descrição | Link |
 |---|---|---|
 | Histórias implementadas (POST-IT) | Descrição das ≥2 histórias implementadas nesta entrega | [Acessar](#) |
-| Issue/bug tracker | Print do uso do bug tracker do GitHub | [Acessar](#) |
-| Screencast — sistema rodando | Vídeo do app Spring Boot em funcionamento | [Acessar](#) |
-| Screencast — explicação do código | Vídeo explicando o código das histórias implementadas | [Acessar](#) |
+| Issue/bug tracker | Print do uso do bug tracker do GitHub | [Acessar](./img/issue_bug_1.jpeg) |
+| Screencast — sistema rodando | Vídeo do app Spring Boot em funcionamento | [Acessar](https://youtu.be/IomFg6woCXM) |
+| Screencast — explicação do código | Vídeo explicando o código das histórias implementadas | [Acessar](https://youtu.be/wuZ8JeXvS_E) |
 
 ---
 
