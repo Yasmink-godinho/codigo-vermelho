@@ -289,12 +289,6 @@ codigo-vermelho/
 
 **➡️ [ENTREGAS_POO.md](docs/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
 
-### Sprint 01 - Definição da equipe e da solução.
-### Sprint 02-03 - Modelagem e definição de dados/algoritmos. [Acessar](/docs/Sprint_02-03/)
-### Sprint 04-05 - Setup de infraestrutura e início dos algoritmos. [Acessar](/docs/Sprint_04-05/)
-### Sprint 06-07 - Acompanhamento integração. [Acessar](/docs/Sprint_06-07/)
-### Sprint 08-09 - Checkpoint
-
 ---
 
  
