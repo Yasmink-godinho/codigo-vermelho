@@ -6,24 +6,24 @@
 
 ### Operação escolhida
 
-Painel descritivo US06: estatísticas de um histórico de consumo (soma, média, variância, desvio padrão, coeficiente de variação, **mediana** e **percentil 95**). Na escala nacional, é um relatório que pode atravessar milhões de registros de hospitais.
+Painel descritivo US06: estatísticas agregadas de um histórico de consumo — soma, média, variância, desvio padrão e coeficiente de variação. Na escala nacional, é um relatório que pode atravessar milhões de registros de hospitais, calculado sobre dados já carregados na camada de aplicação.
 
 ### Candidatas avaliadas
 
-| Operação | Onde o tempo é gasto | Decisão |
-|---|---|---|
-| Estatísticas do histórico (mediana e P95 incluídas) | Cálculo e ordenação sobre dados já em memória (CPU) | **Escolhida** |
-| Cruzamento requisições × estoque | Depende do JOIN e dos índices no banco; a melhoria natural é na consulta SQL | Descartada |
-| Ordenação de filas por prioridade | CPU, O(n log n), particionável | Válida, mas usa a mesma técnica (ordenar fatias e mesclar) |
-| Detecção de duplicatas | Depende de uma estrutura de hash global, mais sensível a memória | Descartada |
-| Validações em lote | Trabalho por registro muito leve; o custo de coordenar threads tende a superar o ganho | Descartada |
+| Operação | Onde o tempo é gasto | Big-O | Particionável | Decisão |
+|---|---|---|---|---|
+| Estatísticas agregadas do histórico (soma, média, variância) | Cálculo sobre dados já em memória (CPU) | O(n) | Sim, por soma parcial | **Escolhida** |
+| Cruzamento requisições × estoque | Depende do JOIN e dos índices no banco | — | — | Descartada: gargalo é a consulta SQL |
+| Ordenação de filas por prioridade | CPU | O(n log n) | Sim, por fatias e merge | Investigada em paralelo a esta entrega (ver observação ao fim da análise); não incluída no serviço final por falta de tempo para diagnosticar uma lentidão inesperada |
+| Detecção de duplicatas | Estrutura de hash global, sensível a memória | O(n) | Parcialmente | Descartada |
+| Validações em lote | Trabalho por registro muito leve | O(n) | Sim | Descartada: risco de custo de coordenação superar o ganho |
 
 ### Big-O e gargalo
 
-- **Sequencial:** soma e soma dos quadrados são calculadas em uma passada, O(n). Mediana e P95 exigem ordenar o vetor, O(n log n). O custo dominante é **O(n log n)**.
-- **Gargalo:** processamento. Os dados já estão na camada de aplicação e o tempo medido é gasto calculando e ordenando, sem esperar banco ou rede.
-- **Particionável:** soma e soma dos quadrados são aditivas entre fatias, e a ordenação pode ser feita por fatias e depois mesclada. Cada tarefa trabalha só na sua fatia contígua, sem escrita compartilhada, então não há race condition. As somas usam `long`, portanto o resultado é exato em qualquer ordem de agregação.
-- **Com p threads:** cada fatia é ordenada em O((n/p) log(n/p)), em paralelo, e o merge final custa O(n log p), em uma única thread.
+- **Sequencial:** soma e soma dos quadrados são calculadas em uma única passada pelo vetor. **O(n)** de tempo, O(1) de espaço adicional.
+- **Gargalo:** processamento. Os dados já estão na camada de aplicação (gerados em memória) e o tempo medido é gasto calculando, sem esperar banco ou rede.
+- **Particionável:** soma e soma dos quadrados são aditivas entre fatias disjuntas. Cada tarefa processa só a sua fatia contígua, sem escrita compartilhada, e a thread que atende a requisição agrega os resultados parciais só ao final. Como as somas usam `long` (inteiros), o resultado é exato e idêntico, em qualquer ordem de agregação — não há race condition.
+- **Com p threads:** cada fatia é processada em O(n/p); a agregação final custa O(p), desprezível.
 
 ## 2. O serviço
 
@@ -33,7 +33,7 @@ Painel descritivo US06: estatísticas de um histórico de consumo (soma, média,
 |---|---|---|
 | `registros` | de 1 a 5.000.000 | `100000` |
 | `modo` | `sequencial` ou `threads` | `sequencial` |
-| `threads` | `2`, `4` ou `8` (número de fatias) | `2` |
+| `threads` | `2`, `4` ou `8` | `2` |
 
 Exemplos:
 
@@ -42,13 +42,13 @@ GET http://localhost:8080/api/v1/analises/consumo?registros=100000&modo=sequenci
 GET http://localhost:8080/api/v1/analises/consumo?registros=1000000&modo=threads&threads=8
 ```
 
-Resposta: `modo`, `threads`, `registros`, `somaConsumo`, `media`, `variancia`, `desvioPadrao`, `coeficienteVariacao`, `mediana`, `percentil95` e `tempoProcessamentoNanos`. Mediana e P95 usam interpolação linear sobre o vetor ordenado.
+Resposta: `modo`, `threads`, `registros`, `somaConsumo`, `media`, `variancia`, `desvioPadrao`, `coeficienteVariacao` e `tempoProcessamentoNanos`.
 
-Os dados são sintéticos e determinísticos, então todas as versões processam a mesma entrada. O pool de 8 workers é criado uma vez, como bean do Spring, e não entra no tempo medido.
+Os dados são sintéticos e determinísticos, então todas as versões processam exatamente a mesma entrada.
 
 ### Corretude
 
-O teste `AnaliseConsumoServiceTest` compara todos os campos da resposta entre o modo sequencial e o modo com threads, e passou. Durante o desenvolvimento, esse teste detectou uma divergência no P95 causada por um erro no merge, que foi corrigido. Nas medições, o `percentil95` foi idêntico em todas as configurações do mesmo tamanho.
+O teste `AnaliseConsumoServiceTest` compara todos os campos da resposta entre o modo sequencial e o modo com threads (2, 4 e 8), e passa: soma, média, variância, desvio padrão e coeficiente de variação são idênticos em todas as configurações, confirmando que não há race condition.
 
 ## 3. Medições
 
@@ -58,26 +58,26 @@ O teste `AnaliseConsumoServiceTest` compara todos os campos da resposta entre o 
 
 | Registros | Sequencial (ms) | 2 threads (ms) | Speedup 2 | 4 threads (ms) | Speedup 4 | 8 threads (ms) | Speedup 8 |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 100.000 | 2,344 | 2,090 | 1,12 | 1,797 | 1,30 | 3,777 | 0,62 |
-| 1.000.000 | 23,431 | 17,867 | 1,31 | 17,481 | 1,34 | 20,707 | 1,13 |
+| 100.000 | 0,087 | 0,564 | 0,15 | 0,848 | 0,10 | 0,865 | 0,10 |
+| 1.000.000 | 0,896 | 1,042 | 0,86 | 1,353 | 0,66 | 1,289 | 0,69 |
 
 **Tempo de resposta do endpoint (visto pelo cliente)**
 
 | Registros | Sequencial (ms) | 2 threads (ms) | Speedup 2 | 4 threads (ms) | Speedup 4 | 8 threads (ms) | Speedup 8 |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 100.000 | 5,875 | 4,844 | 1,21 | 3,926 | 1,50 | 7,427 | 0,79 |
-| 1.000.000 | 29,899 | 24,674 | 1,21 | 24,626 | 1,21 | 27,425 | 1,09 |
+| 100.000 | 2,407 | 3,528 | 0,68 | 3,595 | 0,67 | 3,256 | 0,74 |
+| 1.000.000 | 8,326 | 10,006 | 0,83 | 9,670 | 0,86 | 10,460 | 0,80 |
 
 ![Tempo e speedup](img/grafico_speedup.png)
 
-O gráfico usa o tempo de processamento no servidor. A linha tracejada é o speedup ideal.
+O gráfico usa o tempo de processamento no servidor. A linha tracejada é o speedup ideal; a linha horizontal em 1,0 marca o ponto de equilíbrio entre sequencial e threads.
 
 ## 4. Análise
 
-O ganho não foi linear. Com 1 milhão de registros, o melhor caso foi 1,34× com 4 threads (eficiência de cerca de 34%; o ideal seria 4×) e, com 8 threads, caiu para 1,13×. Com 100 mil registros, 8 threads ficou mais lenta que a sequencial (0,62×); como o processamento leva cerca de 2 ms, essas diferenças ficam perto do ruído da medição. A principal explicação é que só parte do trabalho é paralela: ordenar as fatias roda em paralelo, mas o merge final continua em uma única thread (Lei de Amdahl) e cresce com o número de fatias. Somam-se o custo de despachar tarefas e a disputa por memória, já que ordenar lê e escreve muito. Como a máquina tem 10 núcleos e 12 processadores lógicos, a queda de 4 para 8 threads não se explica por falta de núcleos; nossas hipóteses são o merge maior e a contenção de memória, mas não as isolamos. O tempo total do endpoint mostra o mesmo padrão, com ganho menor, porque geração dos dados, rede local e serialização são custo fixo.
+Nenhuma configuração com threads superou a versão sequencial: todos os speedups ficaram abaixo de 1, tanto no tempo de processamento quanto no tempo de resposta do endpoint. Com 1 milhão de registros, o melhor caso (2 threads) chegou perto do sequencial (0,86×), mas ainda foi mais lento; com 100 mil registros, a perda foi grande (0,10–0,15×). A causa é a natureza da operação: somar e calcular variância sobre um vetor é O(n) e, mesmo com 1 milhão de registros, o cálculo sequencial leva menos de 1 milissegundo. Criar o pool de threads, dividir o trabalho em tarefas, despachá-las e agregar os resultados parciais custa mais do que o próprio cálculo, então o paralelismo só adiciona sobrecarga. Isso ilustra na prática a Lei de Amdahl em um caso extremo: quando a fração paralelizável do trabalho é muito pequena em relação ao tempo total, e o tempo total já é minúsculo, não há operação de coordenação que compense.
 
-A Big-O não mudou: o trabalho total continua O(n log n). Cada thread faz O((n/p) log(n/p)) e o merge custa O(n log p); as threads reduzem o tempo decorrido, não a classe assintótica.
+A Big-O não mudou entre as versões: ambas são O(n). O trabalho total realizado é o mesmo; threads não reduzem a quantidade de operações, apenas tentam distribuí-las entre núcleos e, aqui, essa distribuição não compensou o custo de coordenação. 
+Na Mesa DJ, as threads davam concorrência: vários eventos em andamento, alternando enquanto esperam, o que melhora a responsividade mesmo com um só núcleo disponível. Aqui o objetivo era paralelismo: dividir um único volume de trabalho entre núcleos para terminar mais rápido. Os resultados mostram que paralelismo só compensa quando o trabalho por fatia é grande o bastante para superar o custo fixo de criar e coordenar as threads, o que não é o caso desta operação, mas seria o caso de operações mais pesadas, como ordenação, agregações com maior custo por elemento, ou lotes ainda maiores. 
+Quando o volume crescer o bastante para que o cálculo em si passe a dominar (registros maiores, estatísticas mais caras, ou consolidação de múltiplos históricos), o caminho de evolução é sair de uma única JVM: tirar o relatório da requisição síncrona, processar em lote com workers escaláveis horizontalmente, particionados por hospital e período, e manter os agregados prontos em cache ou em uma tabela atualizada periodicamente, em vez de recalcular tudo a cada requisição. Esse é o gancho para a Unidade 2. 
 
-Na Mesa DJ, as threads davam concorrência: vários eventos em andamento, alternando enquanto esperam, o que melhora a responsividade e funciona até com um só núcleo. Aqui é paralelismo: fatias da mesma operação rodam ao mesmo tempo em núcleos diferentes para terminar antes, e o ganho depende dos núcleos e da fração paralelizável. As virtual threads não foram medidas; como servem para esperas bloqueantes e este cálculo usa CPU o tempo todo, não esperamos vantagem sobre as threads de plataforma, mas isso não foi verificado.
-
-Quando 8 threads não bastarem, o caminho é sair de uma única JVM: tirar o relatório da requisição síncrona e usar uma fila de jobs com workers escaláveis horizontalmente, particionados por hospital e período. Soma, contagem e soma dos quadrados combinam-se com facilidade; mediana e P95 exatos exigem mesclar dados ordenados ou usar estimadores aproximados. Completam a evolução uma tabela de agregados atualizada em lote, cache, banco de leitura e observabilidade. Esse é o gancho para a Unidade 2.
+**Observação:** o grupo tentou estender a operação para incluir mediana e percentil 95 (que exigem ordenar o vetor, O(n log n), um caso com mais chance de ganho mensurável). A implementação, ordenação por fatias em paralelo seguida de merge k-way, funcionou corretamente (mesmo resultado em ambos os modos, confirmado por teste), mas apresentou uma lentidão inesperada e instável na etapa de merge, não explicada pelas causas mais comuns (array compartilhado entre threads, recriação do pool a cada chamada, pool subdimensionado). A hipótese mais provável éa pressão de coleta de lixo pela alocação repetida de arrays grandes a cada requisição. Não incluímos essa versão na entrega por não termos conseguido isolar a causa com confiança dentro do prazo.
