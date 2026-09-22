@@ -20,5 +20,7 @@ class AnaliseConsumoServiceTest {
         assertEquals(sequencial.variancia(), paralelo.variancia());
         assertEquals(sequencial.desvioPadrao(), paralelo.desvioPadrao());
         assertEquals(sequencial.coeficienteVariacao(), paralelo.coeficienteVariacao());
+        assertEquals(sequencial.mediana(), paralelo.mediana());
+        assertEquals(sequencial.percentil95(), paralelo.percentil95());
     }
 }

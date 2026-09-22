@@ -4,7 +4,9 @@ import com.codigovermelho.controllers.dto.AnaliseConsumoResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -32,7 +34,8 @@ public class AnaliseConsumoService {
         double coeficienteVariacao = media == 0 ? 0 : desvioPadrao / media * 100;
         return new AnaliseConsumoResponse(modo, modo.equals("threads") ? quantidadeThreads : 1,
                 quantidadeRegistros, estatisticas.soma(), media, variancia, desvioPadrao,
-                coeficienteVariacao, tempo);
+            coeficienteVariacao, calcularPercentil(estatisticas.ordenados(), 0.5),
+            calcularPercentil(estatisticas.ordenados(), 0.95), tempo);
     }
 
     private int[] gerarConsumos(int quantidadeRegistros) {
@@ -44,24 +47,32 @@ public class AnaliseConsumoService {
     }
 
     private Estatisticas calcularSequencial(int[] consumos) {
-        return calcularFatia(consumos, 0, consumos.length);
+        Arrays.sort(consumos);
+        return calcularEstatisticas(consumos);
     }
 
     private Estatisticas calcularComThreads(int[] consumos, int quantidadeThreads) {
         ExecutorService executor = Executors.newFixedThreadPool(quantidadeThreads);
         try {
-            List<Callable<Estatisticas>> tarefas = new ArrayList<>();
+            List<Callable<ResultadoFatia>> tarefas = new ArrayList<>();
             int tamanhoFatia = (consumos.length + quantidadeThreads - 1) / quantidadeThreads;
             for (int inicio = 0; inicio < consumos.length; inicio += tamanhoFatia) {
                 int inicioFatia = inicio;
                 int fimFatia = Math.min(inicio + tamanhoFatia, consumos.length);
-                tarefas.add(() -> calcularFatia(consumos, inicioFatia, fimFatia));
+                tarefas.add(() -> {
+                    int[] copia = Arrays.copyOfRange(consumos, inicioFatia, fimFatia);
+                    Arrays.sort(copia);
+                    return new ResultadoFatia(calcularEstatisticas(copia), copia);
+                });
             }
-            Estatisticas total = new Estatisticas(0, 0, 0);
-            for (var resultado : executor.invokeAll(tarefas)) {
-                total = total.somar(resultado.get());
+            Estatisticas total = new Estatisticas(0, 0, 0, new int[0]);
+            List<int[]> fatiasOrdenadas = new ArrayList<>();
+            for (var futuro : executor.invokeAll(tarefas)) {
+                ResultadoFatia resultado = futuro.get();
+                total = total.somar(resultado.estatisticas());
+                fatiasOrdenadas.add(resultado.ordenados());
             }
-            return total;
+            return total.comOrdenados(mergerOrdenado(fatiasOrdenadas, consumos.length));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("A analise foi interrompida", exception);
@@ -72,14 +83,47 @@ public class AnaliseConsumoService {
         }
     }
 
-    private Estatisticas calcularFatia(int[] consumos, int inicio, int fim) {
+    private Estatisticas calcularEstatisticas(int[] consumos) {
         long soma = 0;
         long somaQuadrados = 0;
-        for (int indice = inicio; indice < fim; indice++) {
+        for (int indice = 0; indice < consumos.length; indice++) {
             soma += consumos[indice];
             somaQuadrados += (long) consumos[indice] * consumos[indice];
         }
-        return new Estatisticas(fim - inicio, soma, somaQuadrados);
+        return new Estatisticas(consumos.length, soma, somaQuadrados, consumos);
+    }
+
+    private int[] mergerOrdenado(List<int[]> fatias, int tamanho) {
+        PriorityQueue<EntradaMerge> fila = new PriorityQueue<>((primeira, segunda) ->
+                Integer.compare(primeira.valor(), segunda.valor()));
+        for (int indiceFatia = 0; indiceFatia < fatias.size(); indiceFatia++) {
+            int[] fatia = fatias.get(indiceFatia);
+            if (fatia.length > 0) {
+                fila.add(new EntradaMerge(fatia[0], indiceFatia, 0));
+            }
+        }
+
+        int[] ordenados = new int[tamanho];
+        int indiceOrdenado = 0;
+        while (!fila.isEmpty()) {
+            EntradaMerge entrada = fila.remove();
+            ordenados[indiceOrdenado++] = entrada.valor();
+            int proximaPosicao = entrada.posicao() + 1;
+            int[] fatia = fatias.get(entrada.indiceFatia());
+            if (proximaPosicao < fatia.length) {
+                fila.add(new EntradaMerge(fatia[proximaPosicao], entrada.indiceFatia(), proximaPosicao));
+            }
+        }
+        return ordenados;
+    }
+
+    private double calcularPercentil(int[] ordenados, double percentil) {
+        double posicao = percentil * (ordenados.length - 1);
+        int indiceInferior = (int) Math.floor(posicao);
+        int indiceSuperior = (int) Math.ceil(posicao);
+        double fracao = posicao - indiceInferior;
+        return ordenados[indiceInferior]
+                + fracao * (ordenados[indiceSuperior] - ordenados[indiceInferior]);
     }
 
     private void validarEntrada(int quantidadeRegistros, String modo, int quantidadeThreads) {
@@ -94,10 +138,20 @@ public class AnaliseConsumoService {
         }
     }
 
-    private record Estatisticas(long registros, long soma, long somaQuadrados) {
+    private record Estatisticas(long registros, long soma, long somaQuadrados, int[] ordenados) {
         private Estatisticas somar(Estatisticas outra) {
             return new Estatisticas(registros + outra.registros, soma + outra.soma,
-                    somaQuadrados + outra.somaQuadrados);
+                    somaQuadrados + outra.somaQuadrados, new int[0]);
         }
+
+        private Estatisticas comOrdenados(int[] valoresOrdenados) {
+            return new Estatisticas(registros, soma, somaQuadrados, valoresOrdenados);
+        }
+    }
+
+    private record ResultadoFatia(Estatisticas estatisticas, int[] ordenados) {
+    }
+
+    private record EntradaMerge(int valor, int indiceFatia, int posicao) {
     }
 }

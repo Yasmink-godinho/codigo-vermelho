@@ -9,5 +9,7 @@ public record AnaliseConsumoResponse(
         double variancia,
         double desvioPadrao,
         double coeficienteVariacao,
+        double mediana,
+        double percentil95,
         long tempoProcessamentoNanos) {
 }
