@@ -20,15 +20,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
+          cache-dependency-path: backend/pom.xml
+
 
       - name: Build com Maven (sem rodar testes)
-        run: mvn -B clean package -DskipTests
+        working-directory: backend
+        run: ./mvnw -B clean package -DskipTests
 
       - name: Rodar testes
-        run: mvn -B test
+        working-directory: backend
+        run: ./mvnw -B test
 
       - name: Publicar o .jar gerado
         uses: actions/upload-artifact@v4
         with:
           name: codigo-vermelho-jar
-          path: target/*.jar
+          path: backend/target/*.jar
