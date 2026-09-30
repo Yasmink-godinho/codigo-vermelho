@@ -36,3 +36,13 @@ jobs:
         with:
           name: codigo-vermelho-jar
           path: backend/target/*.jar
+
+  deploy:
+    name: Deploy automático (Render)
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar deploy no Render
+        run: |
+          curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
