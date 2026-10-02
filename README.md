@@ -302,7 +302,7 @@ codigo-vermelho/
 | **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
 | **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
 | **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Isabela Karla de Araujo Silva**          | *A definir*                                   | Infraestrutura de Software               | ikas@cesar.school     | *A definir*                                             |
+| **Isabela Karla de Araujo Silva**          | *A definir*                                   | Infraestrutura de Software | ikas@cesar.school     | [@isabelakarla](https://github.com/isabelakarla)       |
  
  
 ### Membros anteriores / novos
