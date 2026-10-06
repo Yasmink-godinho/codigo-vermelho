@@ -8,11 +8,14 @@ Projeto Integrador desenvolvido para o **3º semestre de Análise e Desenvolvime
 
 <br>
 
-![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge\&logo=openjdk\&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge\&logo=springboot\&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge\&logo=postgresql\&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge\&logo=githubactions\&logoColor=white)
+![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![H2 Database](https://img.shields.io/badge/H2-Database-003B57?style=for-the-badge&logo=h2&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
 </div>
 
@@ -66,14 +69,16 @@ O projeto integra diferentes disciplinas e áreas técnicas:
 ### ☕ POO — Programação Orientada a Objetos
 
 Desenvolvimento do backend em **Java/Spring Boot**, utilizando organização em camadas, entidades de domínio, serviços e endpoints REST.
+* 📂 Documentação: [`docs/poo/`](docs/poo/)
 
 ### 🧮 AED — Algoritmos e Estruturas de Dados
 
 Aplicação de algoritmos e estruturas de dados para problemas logísticos, incluindo:
 
-* **Dijkstra** para cálculo de caminhos mínimos;
-* **Heap / Priority Queue** para priorização de bolsas;
+- **Modelagem em Grafos e Dijkstra** para conexões da malha logística com cálculo de caminhos mínimos;
+- **Heap / Priority Queue** para priorização de lotes com validade próxima;
 * Regras de compatibilidade sanguínea ABO/Rh.
+* 📂 Documentação e códigos: [`docs/aed/`](docs/aed/)
 
 ### 📊 EST — Estatística
 
@@ -86,13 +91,15 @@ Aplicação de estatística descritiva para análise do consumo de hemocomponent
 * Classificação da variabilidade da demanda;
 * Indicadores para apoio à gestão de estoque.
 
-### ⚙️ SO — Sistemas Operacionais
+### ⚙️ SO — Infraestrutura de Software
 
 Aplicação de conceitos de concorrência e multithreading, além de processos relacionados à integração e automação do sistema.
+* 📂 Documentação: [`docs/infraestrutura_software/`](docs/infraestrutura_software/)
 
-### 🌐 RSD — Redes
+### 🌐 RSD — Infraestrutura de Comunicação
 
 Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, telemetria e monitoramento da infraestrutura logística.
+* 📂 Documentação: [`docs/redes/`](docs/redes/)
 
 ---
 
@@ -180,56 +187,55 @@ O sistema utiliza regras de negócio para classificar a situação do estoque.
 
 ## 🏗️ Arquitetura do Sistema
 
-A aplicação utiliza uma arquitetura em camadas, com conceitos de **Domain-Driven Design (DDD)**.
+A aplicação é dividida em dois ecossistemas desacoplados que comunicam via JSON sobre HTTP:
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│                    Interface / Frontend                  │
-└─────────────────────────────┬────────────────────────────┘
-                              │
-                              │ HTTP / REST
-                              ▼
-┌──────────────────────────────────────────────────────────┐
-│                Backend — Spring Boot / Java              │
-│                                                          │
-│     Controller → Service → Repository                    │
-│                                                          │
-│     ├── Gestão de Inventário                             │
-│     ├── Regras de Estoque                                │
-│     ├── FEFO                                             │
-│     ├── Roteirização                                     │
-│     └── Compatibilidade ABO/Rh                           │
-└─────────────────────────────┬────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────┐
-│                    PostgreSQL Database                    │
-└──────────────────────────────────────────────────────────┘
-
-                    ┌─────────────────┐
-                    │ Python / Dados  │
-                    │                 │
-                    │ Pandas + NumPy  │
-                    │                 │
-                    │ Análise US06    │
-                    └─────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                      Frontend SPA (React 19 + Vite)                    │
+│          Componentes Tailwind CSS | Recharts | React Router v7         │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    │ Chamadas REST HTTP (JSON)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Backend API (Spring Boot / Java 17)                  │
+│                                                                        │
+│   Controllers (REST) ──► Services (Regras de Negócio) ──► Repositories │
+│                                                                        │
+│   ├── Gestão de Instituições                                           │
+│   ├── Lotes de Hemocomponentes & FEFO                                  │
+│   ├── Regulação de Requisições Hospitalares                            │
+│   └── Processamento Concorrente de Consumo                             │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                       ┌────────────┴────────────┐
+                       ▼                         ▼
+            ┌─────────────────────┐   ┌─────────────────────┐
+            │   H2 In-Memory DB   │   │ PostgreSQL Database │
+            │    (Perfil dev)     │   │    (Perfil prod)    │
+            └─────────────────────┘   └─────────────────────┘
 ```
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-| Categoria            | Tecnologia          | Utilização                                   |
-| -------------------- | ------------------- | -------------------------------------------- |
-| Linguagem            | **Java 17**         | Desenvolvimento do backend                   |
-| Framework            | **Spring Boot 3.x** | API REST e estrutura da aplicação            |
-| Banco de Dados       | **PostgreSQL**      | Persistência dos dados                       |
-| Linguagem de Análise | **Python 3.x**      | Análise estatística e processamento de dados |
-| Biblioteca           | **Pandas**          | Manipulação e análise dos datasets           |
-| Biblioteca           | **NumPy**           | Cálculos estatísticos e operações numéricas  |
-| Build                | **Maven**           | Gerenciamento de dependências e build        |
-| Versionamento        | **Git / GitHub**    | Controle de versão e colaboração             |
-| CI/CD                | **GitHub Actions**  | Automação de processos de integração         |
+| Categoria | Tecnologia | Utilização |
+| :--- | :--- | :--- |
+| **Linguagem Principal (Back)** | **Java 17 (LTS)** | Desenvolvimento da API REST e regras de negócio |
+| **Framework Backend** | **Spring Boot 4.1.1** | Estrutura principal da API RESTful |
+| **Persistência / ORM** | **Spring Data JPA / Hibernate** | Mapeamento objeto-relacional e operações de banco |
+| **Banco de Dados (Dev)** | **H2 Database** | Banco de dados relacional em memória com console web ativada |
+| **Banco de Dados (Prod)** | **PostgreSQL** | Persistência definitiva dos dados da malha logística |
+| **Concorrência** | **Java Concurrency / Threads** | Processamento paralelo e pool de threads para simulação de consumo |
+| **Módulos Complementares** | **C++ 17** | Rotinas de análise estatística e processamento de malha em AED |
+| **Biblioteca Web (Front)** | **React 19** | Interface de usuário Single-Page Application (SPA) |
+| **Linguagem (Front)** | **TypeScript 5.7** | Tipagem estática e segurança de código na interface |
+| **Build Tool (Front)** | **Vite 6** | Servidor de desenvolvimento rápido e empacotamento do frontend |
+| **Estilização** | **Tailwind CSS v4** | Design responsivo e componentes visuais do dashboard |
+| **Build Tool (Back)** | **Maven (Wrapper ./mvnw)** | Gestão de dependências e compilação do ecossistema Java |
+| **Versionamento** | **Git / GitHub** | Controle de versão distribuído e colaboração |
+| **CI/CD** | **GitHub Actions** | Esteira automatizada de build e execução de testes contínuos |
 
 ---
 
@@ -239,11 +245,41 @@ A aplicação utiliza uma arquitetura em camadas, com conceitos de **Domain-Driv
 
 Para executar o projeto localmente, serão necessários:
 
-* Java 17 ou superior;
-* Maven 3.8 ou superior;
-* PostgreSQL 14 ou superior;
-* Python 3.x;
-* Git.
+* **Java JDK 17** ou superior instalado e configurado nas variáveis de ambiente;
+* **Node.js 20+** e gerenciador de pacotes (**npm**, **pnpm** ou **yarn**) para o frontend;
+* **Git** para clonagem e sincronização do repositório;
+
+---
+
+### Execução do Projeto
+
+#### 1. Backend (Spring Boot 4.1.1)
+
+No terminal, a partir da raiz do repositório:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+
+```
+
+* **API REST:** `http://localhost:8080/api/v1`
+
+* **Console Web H2:** `http://localhost:8080/h2-console`
+
+#### 2. Frontend (React / Vite)
+
+Em outra janela de terminal, a partir da raiz do repositório:
+
+```bash
+cd frontend
+npm install
+npm run dev
+
+```
+
+* **Aplicação Web:** `http://localhost:5173`
+
 
 **➡️ [COMO_EXECUTAR.md](docs/COMO_EXECUTAR.md) - Guia completo e solução de problemas**
 
@@ -253,31 +289,36 @@ Para executar o projeto localmente, serão necessários:
  
 ```text
 codigo-vermelho/
-│
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/
-│       │        └── codigovermelho/
-│       │               ├── controllers/
-│       │               ├── services/
-│       │               ├── models/
-│       │               └── repositories/
-│       │
-│       └── resources/
-│           └── application.properties
-│
-├── estatistica/
-│   ├── main.py
-│   ├── Dataset_Sintetico_Malha.csv
-│   └── requirements.txt
-│
+├── .github/
+│   └── workflows/
+│       └── build.yml
+├── backend/
+│   ├── src/main/java/com/codigovermelho/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   └── services/
+│   ├── src/main/resources/
+│   │   └── application.properties
+│   └── pom.xml
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── data/
+│   │   ├── pages/
+│   │   └── types/
+│   ├── package.json
+│   └── vite.config.ts
 ├── docs/
-│   ├── HISTORIAS_USUARIO.md
+│   ├── aed/
+│   ├── infraestrutura_software/
+│   ├── poo/
+│   ├── redes/
+│   ├── img/
 │   ├── COMO_EXECUTAR.md
 │   ├── PROTOTIPO.md
-│   └── ENTREGAS_POO.md
-│
+│   └── RESULTADO_ROTA.md
 ├── pom.xml
 ├── README.md
 └── LICENSE
@@ -287,7 +328,7 @@ codigo-vermelho/
 
 ## 📦 Entregas do Projeto
 
-**➡️ [ENTREGAS_POO.md](docs/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
+**➡️ [ENTREGAS_POO.md](docs/poo/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
 
 ---
 
@@ -298,11 +339,11 @@ codigo-vermelho/
 | ------------------------------------------ | --------------------------------------------- | --------------------------- | --------------------- | ------------------------------------------------------ |
 | **Larissa Morais do Nascimento Lira**      | Scrum Master / Product Owner                  | Gestão de Projeto (Projetos 3)          | lmnl@cesar.school     | [@LarissamnLira](https://github.com/LarissamnLira)     |
 | **Diogo Felipe da Silva Alcelino**         | Data Analyst / Data Scientist                 | EST — Estatística          | dfsa@cesar.school     | [@dioguis](https://github.com/dioguis)                 |
-| **Thayná Verçosa de Andrade**              | UI/UX Designer                                | Protótipo e Interface      | tva@cesar.school      | [@thaynavercosa](https://github.com/thaynavercosa)     |
-| **Yasmin Karolina Silva de Moura Godinho** | DevOps & Cloud Engineer                       | SO — Sistemas Operacionais | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
+| **Thayná Verçosa de Andrade**              | UI/UX Designer & Algorithmic Specialist                                | AED — Algoritmos / UX      | tva@cesar.school      | [@thaynavercosa](https://github.com/thaynavercosa)     |
+| **Yasmin Karolina Silva de Moura Godinho** | Backend Developer & Domain Engineer                       | POO | yksmg@cesar.school    | [@Yasmink-godinho](https://github.com/Yasmink-godinho) |
 | **Kézia de Aguiar Albuquerque**            | Network & Telemetry Specialist                | RSD — Redes                | kaa@cesar.school      | [@keziaguiar12](https://github.com/keziaguiar12)       |
-| **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO / AED                  | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
-| **Isabela Karla de Araujo Silva**          | *A definir*                                   | Infraestrutura de Software | ikas@cesar.school     | [@isabelakarla](https://github.com/isabelakarla)       |
+| **João Rafael Morato Uchoa Cavalcanti**    | Lead Backend Developer & Algorithmic Engineer | POO/AED       | jrmuc@cesar.school    | [@jaozinnm](https://github.com/jaozinnm)               |
+| **Isabela Karla de Araujo Silva**          | Software Infrastructure Engineer                                  | Infraestrutura de Software | ikas@cesar.school     | [@isabelakarla](https://github.com/isabelakarla)       |
  
  
 ### Membros anteriores / novos
