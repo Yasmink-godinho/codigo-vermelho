@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rota Vital — Painel Inicial (U1 Estatística)</title>
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --ink: #1a1d21;
+    --muted: #5b6167;
+    --line: #d9dcdf;
+    --blood: #9c1d24;
+    --blood-soft: #f4dfe0;
+    --blue: #235789;
+    --blue-soft: #dce8f2;
+    --ok: #2e7d53;
+    --warn: #b4740e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 48px 32px 32px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+  header h1 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 2.1rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    max-width: 640px;
+  }
+  main {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  section h2 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+  }
+  section .pergunta {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0 0 20px;
+  }
+  .hero-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .hero-num {
+    font-family: Georgia, serif;
+    font-size: 2.6rem;
+    color: var(--blood);
+    line-height: 1;
+  }
+  .hero-label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: block;
+    margin-top: 4px;
+  }
+  .barra-grupo { display: flex; flex-direction: column; gap: 10px; }
+  .barra-linha {
+    display: grid;
+    grid-template-columns: 130px 1fr 60px;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+  .barra-fundo {
+    background: var(--line);
+    border-radius: 3px;
+    height: 10px;
+    overflow: hidden;
+  }
+  .barra-preenchida {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 3px;
+  }
+  .barra-preenchida.sangue { background: var(--blood); }
+  .valor { text-align: right; color: var(--muted); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  th { color: var(--muted); font-weight: 600; }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.78rem;
+  }
+  .tag.critico { background: var(--blood-soft); color: var(--blood); }
+  .tag.normal { background: #dff0e6; color: var(--ok); }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .stat-card .n { font-size: 1.4rem; font-family: Georgia, serif; }
+  .stat-card .l { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 24px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Rota Vital — Painel Inicial</h1>
+  <p>U1 de Estatística: primeira leitura descritiva de estoque, demanda e tempos de atendimento, a partir dos dados sintéticos da malha logística.</p>
+</header>
+
+<main>
+
+  <section>
+    <h2>Estoque</h2>
+    <p class="pergunta">Como está distribuído o estoque atualmente?</p>
+
+    <div class="hero-row">
+      <div>
+        <span class="hero-num">321</span>
+        <span class="hero-label">bolsas em estoque no total</span>
+      </div>
+      <div>
+        <span class="hero-num" style="color: var(--warn); font-size: 1.8rem;">3</span>
+        <span class="hero-label">unidades em estado crítico</span>
+      </div>
+    </div>
+
+    <div class="barra-grupo">
+      <div class="barra-linha">
+        <span>O+</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 100%"></div></div>
+        <span class="valor">147</span>
+      </div>
+      <div class="barra-linha">
+        <span>AB+</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 41%"></div></div>
+        <span class="valor">60</span>
+      </div>
+      <div class="barra-linha">
+        <span>A+</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 22%"></div></div>
+        <span class="valor">32</span>
+      </div>
+      <div class="barra-linha">
+        <span>B+</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 19%"></div></div>
+        <span class="valor">28</span>
+      </div>
+      <div class="barra-linha">
+        <span>AB-</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 12%"></div></div>
+        <span class="valor">18</span>
+      </div>
+      <div class="barra-linha">
+        <span>A-</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 10%"></div></div>
+        <span class="valor">15</span>
+      </div>
+      <div class="barra-linha">
+        <span>O-</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 8%"></div></div>
+        <span class="valor">12</span>
+      </div>
+      <div class="barra-linha">
+        <span>B-</span>
+        <div class="barra-fundo"><div class="barra-preenchida sangue" style="width: 6%"></div></div>
+        <span class="valor">9</span>
+      </div>
+    </div>
+
+    <table style="margin-top: 24px;">
+      <thead>
+        <tr><th>Unidade</th><th>Tipo</th><th>Atual</th><th>Mínimo</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>H03 — Hospital Regional Norte</td><td>O-</td><td>12</td><td>25</td><td><span class="tag critico">Crítico</span></td></tr>
+        <tr><td>H06 — Hospital da Zona Oeste</td><td>B-</td><td>9</td><td>15</td><td><span class="tag critico">Crítico</span></td></tr>
+        <tr><td>H07 — Hospital Vital Cruz</td><td>O+</td><td>22</td><td>50</td><td><span class="tag critico">Crítico</span></td></tr>
+        <tr><td>H01 — Hospital Municipal Central</td><td>O+</td><td>45</td><td>50</td><td><span class="tag normal">Atenção</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Demanda</h2>
+    <p class="pergunta">Onde existe maior demanda?</p>
+
+    <div class="hero-row">
+      <div>
+        <span class="hero-num">15</span>
+        <span class="hero-label">requisições registradas</span>
+      </div>
+      <div>
+        <span class="hero-num" style="color: var(--ok); font-size: 1.8rem;">86,7%</span>
+        <span class="hero-label">taxa de atendimento</span>
+      </div>
+    </div>
+
+    <div class="barra-grupo">
+      <div class="barra-linha">
+        <span>H01</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 100%"></div></div>
+        <span class="valor">3</span>
+      </div>
+      <div class="barra-linha">
+        <span>H02</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+      <div class="barra-linha">
+        <span>H03</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+      <div class="barra-linha">
+        <span>H04</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+      <div class="barra-linha">
+        <span>H05</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+      <div class="barra-linha">
+        <span>H06</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+      <div class="barra-linha">
+        <span>H07</span>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width: 66%"></div></div>
+        <span class="valor">2</span>
+      </div>
+    </div>
+
+    <p style="margin-top: 20px; font-size: 0.9rem; color: var(--muted);">
+      Componente mais solicitado: <strong style="color: var(--ink);">Concentrado de Hemácias</strong> (5 de 15 requisições)
+    </p>
+  </section>
+
+  <section>
+    <h2>Tempos de Atendimento</h2>
+    <p class="pergunta">Quanto tempo leva entre pedir e receber?</p>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="n">9,2h</div><div class="l">tempo médio</div></div>
+      <div class="stat-card"><div class="n">8,4h</div><div class="l">desvio padrão</div></div>
+      <div class="stat-card"><div class="n">91%</div><div class="l">coef. de variação</div></div>
+      <div class="stat-card"><div class="n">1,5h</div><div class="l">mais rápido</div></div>
+      <div class="stat-card"><div class="n">22h</div><div class="l">mais lento</div></div>
+    </div>
+
+    <p style="margin-top: 20px; font-size: 0.9rem; color: var(--muted);">
+      O coeficiente de variação de 91% indica <strong style="color: var(--warn);">alta instabilidade</strong> — alguns atendimentos ocorrem em poucas horas, outros levam quase um dia inteiro.
+    </p>
+  </section>
+
+</main>
+
+<footer>Painel inicial da U1 — dados sintéticos, gerados a partir de Dataset_Sintetico_Malha.csv e Dataset_Requisicoes.csv</footer>
+
+</body>
+</html>
