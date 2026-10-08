@@ -55,19 +55,10 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Banco em memoria usado SOMENTE nos testes automatizados (contextLoads, etc).
-             Evita que o pipeline de CI precise de um PostgreSQL real rodando.
-             A configuracao que ativa o H2 nos testes fica em
-             src/test/resources/application.properties. -->
+        <!-- Banco H2 disponivel para desenvolvimento e testes -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -95,5 +86,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
