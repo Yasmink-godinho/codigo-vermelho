@@ -49,25 +49,37 @@ export default function LoginScreen({ onLogin }: { onLogin: (u: AppUser) => void
       return;
     }
     setLoading(true);
+
     setTimeout(() => {
       const expectedEmail = cfg.credential.toLowerCase();
       const expectedPass = cfg.password;
+
       if (email.toLowerCase().trim() === expectedEmail && password === expectedPass) {
-        const user = DEMO_USERS.find((u) => u.email.toLowerCase() === expectedEmail);
-        if (user) {
-          try {
-            localStorage.setItem("cv_user_role", user.role);
-            localStorage.setItem("cv_user_data", JSON.stringify(user));
-          } catch {
-            // localStorage unavailable in some environments — proceed anyway
-          }
-          onLogin(user);
-          return;
+        // Busca o utilizador ou usa o perfil padrão caso não esteja explicitamente no DEMO_USERS
+        const user: AppUser = DEMO_USERS.find((u) => u.email.toLowerCase() === expectedEmail) || {
+          email: cfg.credential,
+          name: perfil === "gestor" ? "Dr. Carlos Andrade" : "Coordenação Hospitalar",
+          title: perfil === "gestor" ? "Gestor da Rede" : "Responsável Técnico",
+          role: perfil === "gestor" ? "admin_principal" : "operador",
+          roleLabel: perfil === "gestor" ? "Administrador Principal" : "Operador",
+          roleBadge: "bg-[#FFF0F2] text-[#C8102E]",
+          initials: perfil === "gestor" ? "CA" : "CH",
+        };
+
+        try {
+          localStorage.setItem("cv_user_role", user.role);
+          localStorage.setItem("cv_user_data", JSON.stringify(user));
+        } catch {
+          // localStorage indisponível no ambiente de teste
         }
+
+        onLogin(user);
+        return;
       }
+
       setError("E-mail/CNES ou senha inválidos. Verifique suas credenciais e tente novamente.");
       setLoading(false);
-    }, 800);
+    }, 300);
   }
 
   return (

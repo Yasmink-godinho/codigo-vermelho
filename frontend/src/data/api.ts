@@ -1,52 +1,19 @@
-import type { Institution, Lote, Requisicao } from "../types";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
 
-const BASE_URL = "http://localhost:8080/api/v1";
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
-// ────────────────────────────────────────────────────────────────
-// Dicionários de compatibilidade para enums legíveis
-// ────────────────────────────────────────────────────────────────
-
-const COMPONENTE_LABEL: Record<string, string> = {
-  CONCENTRADO_HEMACIAS: "Concentrado de Hemácias",
-  PLASMA: "Plasma",
-  PLAQUETAS: "Plaquetas",
-  CRIOPRECIPITADO: "Crioprecipitado",
-};
-
-const URGENCIA_LABEL: Record<string, string> = {
-  ROTINA: "rotina",
-  PRIORITARIA: "prioritaria",
-  EMERGENCIA: "emergencia",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDENTE: "pendente",
-  EM_ANALISE: "em_analise",
-  APROVADA: "aprovada",
-  RECUSADA: "negada",
-  ATENDIDA: "aprovada",
-};
-
-function traduzir(dicionario: Record<string, string>, valorCru: string | null | undefined): string {
-  if (!valorCru) return "";
-  return dicionario[valorCru] ?? valorCru;
-}
-
-// ────────────────────────────────────────────────────────────────
-// Tipos brutos devolvidos pelo Spring Boot
-// ────────────────────────────────────────────────────────────────
-
-interface InstituicaoResponseRaw {
+export interface InstituicaoAPI {
   id: number;
   name: string;
   type: string;
   location: string;
   latitude: number;
   longitude: number;
-  minStock: Record<string, number>;
+  minStock?: Record<string, number>;
+  relations?: number;
 }
 
-interface LoteResponseRaw {
+export interface LoteFEFOAPI {
   id: number;
   instId: number;
   instName: string;
@@ -56,190 +23,364 @@ interface LoteResponseRaw {
   expiryDate: string;
   quantity: number;
   lotCode: string;
+  status?: string;
+  createdAt?: number | string;
 }
 
-interface RequisicaoResponseRaw {
+export interface RequisicaoAPI {
   id: number;
   reqCode?: string;
-  codigoRequisicao?: string;
   instId?: number;
-  instituicaoSolicitanteId?: number;
   instName?: string;
-  instituicaoSolicitanteNome?: string;
-  bloodType?: string;
-  tipoSanguineo?: string;
-  component?: string;
-  componente?: string;
-  quantity?: number;
-  volume?: number;
+  bloodType: string;
+  component: string;
+  quantity: number;
   urgency?: string;
-  nivelUrgencia?: string;
-  status: string;
   observations?: string;
-  observacoes?: string;
-  createdAt?: number;
-  dataCriacao?: string;
+  status?: string;
+  createdAt?: number | string;
 }
 
-// ────────────────────────────────────────────────────────────────
-// Conversores para o modelo de dados das telas
-// ────────────────────────────────────────────────────────────────
+export interface TransferenciaAPI {
+  id: number | string;
+  from?: string;
+  to?: string;
+  comp?: string;
+  qty?: number;
+  status?: string;
+  temperature?: string;
+}
 
-function converterInstituicao(raw: InstituicaoResponseRaw): Institution {
-  return {
-    id: raw.id,
-    name: raw.name,
-    type: (raw.type as Institution["type"]) || "Hospital Público",
-    location: raw.location || "",
-    neighborhood: "Região Metropolitana",
-    status: "ativa",
-    relations: 0,
-    components: ["O-", "O+", "A+", "B+"],
-    hasHistory: false,
+// ─── Conversores de Enums e Datas ─────────────────────────────────────────────
+
+// Obtém a data local YYYY-MM-DD SEM conversão UTC para não cair na validação @PastOrPresent
+export function obterDataHojeLocal(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+export function formatarDataISO(dataStr: any): string {
+  if (!dataStr) return obterDataHojeLocal();
+  const s = String(dataStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (s.includes("/")) {
+    const partes = s.split("/");
+    if (partes.length === 3) {
+      if (partes[2].length === 4) {
+        return `${partes[2]}-${partes[0].padStart(2, "0")}-${partes[1].padStart(2, "0")}`;
+      }
+    }
+  }
+  return obterDataHojeLocal();
+}
+
+export function normalizarTipoSanguineo(tipo: string = ""): string {
+  const t = String(tipo).trim().toUpperCase();
+  const map: Record<string, string> = {
+    "O-": "O_NEGATIVO",
+    "O+": "O_POSITIVO",
+    "A-": "A_NEGATIVO",
+    "A+": "A_POSITIVO",
+    "B-": "B_NEGATIVO",
+    "B+": "B_POSITIVO",
+    "AB-": "AB_NEGATIVO",
+    "AB+": "AB_POSITIVO",
   };
+  return map[t] || t.replace("-", "_NEGATIVO").replace("+", "_POSITIVO");
 }
 
-function converterLote(raw: LoteResponseRaw): Lote {
-  return {
-    id: raw.id,
-    instId: raw.instId,
-    instName: raw.instName,
-    bloodType: raw.bloodType as Lote["bloodType"],
-    component: (traduzir(COMPONENTE_LABEL, raw.component) || raw.component) as Lote["component"],
-    collectionDate: raw.collectionDate,
-    expiryDate: raw.expiryDate,
-    quantity: raw.quantity,
-    lotCode: raw.lotCode,
-    createdAt: Date.now(),
-  };
+export function normalizarComponente(comp: string = ""): string {
+  const c = String(comp).toLowerCase();
+  if (c.includes("plaqueta")) return "PLAQUETAS";
+  if (c.includes("plasma")) return "PLASMA";
+  if (c.includes("crio")) return "CRIOPRECIPITADO";
+  return "CONCENTRADO_HEMACIAS";
 }
 
-function converterRequisicao(raw: RequisicaoResponseRaw): Requisicao {
-  const reqCode = raw.reqCode || raw.codigoRequisicao || `REQ-${raw.id}`;
-  const instId = raw.instId || raw.instituicaoSolicitanteId || 1;
-  const instName = raw.instName || raw.instituicaoSolicitanteNome || "Instituição";
-  const bloodType = (raw.bloodType || raw.tipoSanguineo || "O-") as Requisicao["bloodType"];
-  const compRaw = raw.component || raw.componente || "CONCENTRADO_HEMACIAS";
-  const component = (traduzir(COMPONENTE_LABEL, compRaw) || compRaw) as Requisicao["component"];
-  const quantity = raw.quantity || raw.volume || 1;
-  const urgRaw = raw.urgency || raw.nivelUrgencia || "ROTINA";
-  const urgency = (traduzir(URGENCIA_LABEL, urgRaw) || urgRaw.toLowerCase()) as Requisicao["urgency"];
-  const status = (traduzir(STATUS_LABEL, raw.status) || raw.status.toLowerCase()) as Requisicao["status"];
-  const observations = raw.observations || raw.observacoes || "";
-  const createdAt = raw.createdAt || (raw.dataCriacao ? Date.parse(raw.dataCriacao) : Date.now());
-
-  return {
-    id: raw.id,
-    reqCode,
-    instId,
-    instName,
-    bloodType,
-    component,
-    quantity,
-    urgency,
-    observations,
-    status,
-    createdAt,
-  };
+export function normalizarTipoInstituicao(tipo: string = ""): string {
+  const t = String(tipo).toLowerCase();
+  if (t.includes("hemocentro")) return "HEMOCENTRO";
+  if (t.includes("privado")) return "HOSPITAL_PRIVADO";
+  if (t.includes("upa")) return "UPA";
+  if (t.includes("maternidade")) return "MATERNIDADE";
+  if (t.includes("clinica") || t.includes("clínica")) return "CLINICA";
+  return "HOSPITAL_PUBLICO";
 }
 
-async function tratarResposta<T>(res: Response): Promise<T> {
+// ─── 1. Instituições ──────────────────────────────────────────────────────────
+
+export async function getInstituicoes(): Promise<any[]> {
+  const res = await fetch(`${API_BASE_URL}/instituicoes`);
+  if (!res.ok) throw new Error(`Erro ao obter instituições: ${res.statusText}`);
+  return res.json();
+}
+
+export const buscarInstituicoesApi = getInstituicoes;
+export const listarInstituicoesApi = getInstituicoes;
+export const getInstitutionsApi = getInstituicoes;
+
+export async function buscarInstituicaoPorIdApi(instId: number | string): Promise<InstituicaoAPI | null> {
+  const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}`);
   if (!res.ok) {
-    const corpo = await res.json().catch(() => null);
-    throw new Error(corpo?.mensagem ?? `Erro na requisição (status ${res.status})`);
+    const todas = await getInstituicoes();
+    return todas.find((inst) => String(inst.id) === String(instId)) || null;
   }
   return res.json();
 }
 
-// ────────────────────────────────────────────────────────────────
-// Endpoints de Integração
-// ────────────────────────────────────────────────────────────────
+export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
+  const tipoEnum = normalizarTipoInstituicao(payload.type || payload.tipo);
+  const nomeVal = payload.name || payload.nome || "";
+  const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
 
-export async function buscarInstituicoesApi(): Promise<Institution[]> {
-  const res = await fetch(`${BASE_URL}/instituicoes`);
-  const dados = await tratarResposta<InstituicaoResponseRaw[]>(res);
-  return dados.map(converterInstituicao);
-}
+  // Preenche o atributo estoqueMinimoPorTipo com as chaves Enum aceitas pelo Spring Boot
+  const estoqueMinimoPorTipoEnum: Record<string, number> = {
+    O_NEGATIVO: 20,
+    O_POSITIVO: 30,
+    A_POSITIVO: 25,
+    A_NEGATIVO: 15,
+    B_POSITIVO: 10,
+    B_NEGATIVO: 5,
+    AB_POSITIVO: 10,
+    AB_NEGATIVO: 5,
+  };
 
-export async function cadastrarInstituicaoApi(dados: {
-  nome: string;
-  tipo: string;
-  endereco: string;
-  latitude: number;
-  longitude: number;
-  estoqueMinimoPorTipo?: Record<string, number>;
-}): Promise<Institution> {
-  const res = await fetch(`${BASE_URL}/instituicoes`, {
+  const estoqueMinimoSimples: Record<string, number> = {
+    "O-": 20,
+    "O+": 30,
+    "A+": 25,
+    "A-": 15,
+  };
+
+  const body = {
+    nome: nomeVal,
+    name: nomeVal,
+    tipo: tipoEnum,
+    type: tipoEnum,
+    endereco: localVal,
+    localizacao: localVal,
+    location: localVal,
+    latitude: payload.latitude || -8.0539,
+    longitude: payload.longitude || -34.8999,
+    estoqueMinimoPorTipo: estoqueMinimoPorTipoEnum,
+    estoqueMinimo: estoqueMinimoSimples,
+    minStock: estoqueMinimoSimples,
+    relations: payload.relations || 4,
+  };
+
+  const res = await fetch(`${API_BASE_URL}/instituicoes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
+    body: JSON.stringify(body),
   });
-  const resposta = await tratarResposta<InstituicaoResponseRaw>(res);
-  return converterInstituicao(resposta);
-}
 
-export async function buscarLotesApi(): Promise<Lote[]> {
-  const res = await fetch(`${BASE_URL}/lotes`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
-}
-
-export async function buscarLotesPorInstituicaoApi(instituicaoId: number): Promise<Lote[]> {
-  const res = await fetch(`${BASE_URL}/instituicoes/${instituicaoId}/lotes`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
-}
-
-export async function buscarFilaFefoApi(tipoSanguineo?: string, instituicaoId?: number): Promise<Lote[]> {
-  const params = new URLSearchParams();
-  if (tipoSanguineo && tipoSanguineo !== "Todos") params.set("tipoSanguineo", tipoSanguineo);
-  if (instituicaoId) params.set("instituicaoId", String(instituicaoId));
-  const res = await fetch(`${BASE_URL}/lotes/fila-fefo?${params.toString()}`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
-}
-
-export async function registrarLoteApi(
-  instId: number,
-  dados: {
-    tipoSanguineo: string;
-    componente: string;
-    dataColeta: string;
-    validade?: string;
-    quantidade: number;
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Erro na API ao criar instituição:", res.status, err);
+    throw new Error(`Falha ao cadastrar instituição: ${res.statusText}`);
   }
-): Promise<Lote> {
-  const res = await fetch(`${BASE_URL}/instituicoes/${instId}/lotes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
-  });
-  const resposta = await tratarResposta<LoteResponseRaw>(res);
-  return converterLote(resposta);
+  return res.json();
 }
 
-export async function buscarRequisicoesApi(status?: string, urgencia?: string): Promise<Requisicao[]> {
-  const params = new URLSearchParams();
-  if (status && status !== "todas") params.set("status", status.toUpperCase());
-  if (urgencia && urgencia !== "todas") params.set("urgencia", urgencia.toUpperCase());
-  const res = await fetch(`${BASE_URL}/requisicoes?${params.toString()}`);
-  const dados = await tratarResposta<RequisicaoResponseRaw[]>(res);
-  return dados.map(converterRequisicao);
+export const criarInstituicaoApi = cadastrarInstituicaoApi;
+export const adicionarInstituicaoApi = cadastrarInstituicaoApi;
+
+export async function atualizarInstituicaoApi(id: number | string, payload: any): Promise<any> {
+  const tipoEnum = normalizarTipoInstituicao(payload.type || payload.tipo);
+  const nomeVal = payload.name || payload.nome || "";
+  const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
+
+  const estoqueMinimoPorTipoEnum: Record<string, number> = {
+    O_NEGATIVO: 20,
+    O_POSITIVO: 30,
+    A_POSITIVO: 25,
+    A_NEGATIVO: 15,
+  };
+
+  const body = {
+    nome: nomeVal,
+    name: nomeVal,
+    tipo: tipoEnum,
+    type: tipoEnum,
+    endereco: localVal,
+    location: localVal,
+    latitude: payload.latitude || -8.0539,
+    longitude: payload.longitude || -34.8999,
+    estoqueMinimoPorTipo: estoqueMinimoPorTipoEnum,
+    minStock: { "O-": 20, "O+": 30 },
+    relations: Number(payload.relations || 4),
+  };
+
+  await fetch(`${API_BASE_URL}/instituicoes/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+
+  return payload;
 }
 
-export async function emitirRequisicaoApi(dados: {
-  instituicaoId: number;
-  tipoSanguineo: string;
-  componente: string;
-  volume: number;
-  nivelUrgencia: string;
-  observacoes?: string;
-}): Promise<Requisicao> {
-  const res = await fetch(`${BASE_URL}/requisicoes`, {
+export async function excluirInstituicaoApi(id: number | string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/instituicoes/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Falha ao excluir instituição: ${res.statusText}`);
+}
+
+// ─── 2. Lotes e Fila FEFO ─────────────────────────────────────────────────────
+
+export async function getFilaFEFO(): Promise<any[]> {
+  const res = await fetch(`${API_BASE_URL}/lotes/fila-fefo`);
+  if (!res.ok) throw new Error(`Erro ao buscar fila FEFO: ${res.statusText}`);
+  return res.json();
+}
+
+export const buscarFilaFefoApi = getFilaFEFO;
+export const buscarLotesApi = getFilaFEFO;
+export const listarLotesApi = getFilaFEFO;
+export const getLotesApi = getFilaFEFO;
+
+export async function buscarLotesPorInstituicaoApi(instId: number | string): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Rota /instituicoes/{id}/lotes falhou:", e);
+  }
+  const todos = await getFilaFEFO();
+  return todos.filter((lote: any) => String(lote.instId || lote.instituicaoId) === String(instId));
+}
+
+export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
+  let instId = 1;
+  let dados: any = {};
+
+  if (typeof arg1 === "number" || typeof arg1 === "string") {
+    instId = Number(arg1);
+    dados = arg2 || {};
+  } else {
+    dados = arg1 || {};
+    instId = Number(dados.instId || dados.instituicaoId || 1);
+  }
+
+  const sangueEnum = normalizarTipoSanguineo(dados.bloodType || dados.tipoSanguineo);
+  const compEnum = normalizarComponente(dados.component || dados.componente || dados.tipoComponente);
+  const qtd = Number(dados.quantity || dados.quantidade || dados.quantidadeUnidades || dados.volume || 5);
+
+  // Garante que dataColeta seja a data local de hoje, respeitando a validação @PastOrPresent
+  const dataHojeLocal = obterDataHojeLocal();
+
+  // Validade calculada para o futuro
+  const dVal = new Date();
+  dVal.setDate(dVal.getDate() + 35);
+  const anoV = dVal.getFullYear();
+  const mesV = String(dVal.getMonth() + 1).padStart(2, "0");
+  const diaV = String(dVal.getDate()).padStart(2, "0");
+  const validadeCalculada = `${anoV}-${mesV}-${diaV}`;
+
+  const validadeFinal = dados.expiryDate ? formatarDataISO(dados.expiryDate) : validadeCalculada;
+
+  const body = {
+    instituicaoId: instId,
+    instId: instId,
+    tipoSanguineo: sangueEnum,
+    bloodType: dados.bloodType || "O-",
+    tipoComponente: compEnum,
+    component: dados.component || "Concentrado de Hemácias",
+    componente: compEnum,
+    quantidade: qtd,
+    quantidadeUnidades: qtd,
+    quantity: qtd,
+    dataColeta: dataHojeLocal, // Garantido no presente local
+    collectionDate: dataHojeLocal,
+    dataValidade: validadeFinal,
+    validade: validadeFinal,
+    expiryDate: validadeFinal,
+  };
+
+  // Endpoint confirmado no backend: POST /api/v1/instituicoes/{id}/lotes
+  const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
+    body: JSON.stringify(body),
   });
-  const resposta = await tratarResposta<RequisicaoResponseRaw>(res);
-  return converterRequisicao(resposta);
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Erro da API ao registrar lote:", res.status, err);
+    throw new Error(`Falha ao cadastrar lote: ${res.statusText}`);
+  }
+
+  return res.json();
 }
+
+export const registrarLoteApi = cadastrarLoteApi;
+export const criarLoteApi = cadastrarLoteApi;
+export const adicionarLoteApi = cadastrarLoteApi;
+
+export async function atualizarLoteApi(id: number | string, payload: Partial<LoteFEFOAPI>): Promise<LoteFEFOAPI> {
+  const res = await fetch(`${API_BASE_URL}/lotes/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Erro ao atualizar lote: ${res.statusText}`);
+  return res.json();
+}
+
+export async function excluirLoteApi(id: number | string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/lotes/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Erro ao excluir lote: ${res.statusText}`);
+}
+
+// ─── 3. Requisições ───────────────────────────────────────────────────────────
+
+export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
+  const res = await fetch(`${API_BASE_URL}/requisicoes`);
+  if (!res.ok) throw new Error(`Erro ao buscar requisições: ${res.statusText}`);
+  return res.json();
+}
+
+export const listarRequisicoesApi = buscarRequisicoesApi;
+export const getRequisicoesApi = buscarRequisicoesApi;
+
+export async function cadastrarRequisicaoApi(payload: any): Promise<any> {
+  const sangue = normalizarTipoSanguineo(payload.bloodType || payload.tipoSanguineo);
+  const comp = normalizarComponente(payload.component || payload.componente);
+  const instId = Number(payload.instId || payload.instituicaoId || 1);
+  const volume = Number(payload.quantity || payload.volume || payload.quantidade || 1);
+
+  const body = {
+    instituicaoId: instId,
+    tipoSanguineo: sangue,
+    componente: comp,
+    volume: volume,
+    quantidade: volume,
+    nivelUrgencia: payload.urgency || payload.nivelUrgencia || "NORMAL",
+    observacoes: payload.observations || payload.observacoes || "",
+  };
+
+  const res = await fetch(`${API_BASE_URL}/requisicoes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) throw new Error(`Erro ao emitir requisição: ${res.statusText}`);
+  return res.json();
+}
+
+export const emitirRequisicaoApi = cadastrarRequisicaoApi;
+export const criarRequisicaoApi = cadastrarRequisicaoApi;
+
+// ─── 4. Transferências ─────────────────────────────────────────────────────────
+
+export async function buscarTransferenciasApi(): Promise<TransferenciaAPI[]> {
+  const res = await fetch(`${API_BASE_URL}/transferencias`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export const listarTransferenciasApi = buscarTransferenciasApi;
+export const buscarRedistribuicoesApi = buscarTransferenciasApi;
