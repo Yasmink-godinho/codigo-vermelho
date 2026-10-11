@@ -136,24 +136,17 @@ export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
   const nomeVal = payload.name || payload.nome || "";
   const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
 
-  // Preenche o atributo estoqueMinimoPorTipo com as chaves Enum aceitas pelo Spring Boot
-  const estoqueMinimoPorTipoEnum: Record<string, number> = {
-    O_NEGATIVO: 20,
-    O_POSITIVO: 30,
-    A_POSITIVO: 25,
-    A_NEGATIVO: 15,
-    B_POSITIVO: 10,
-    B_NEGATIVO: 5,
-    AB_POSITIVO: 10,
-    AB_NEGATIVO: 5,
-  };
+  // AJUSTE 3: Preserva estritamente os valores digitados de minStock mapeados para os Enums aceitos pelo Spring Boot
+  const minStockDigitado = payload.minStock || payload.estoqueMinimo || {};
+  const estoqueMinimoPorTipoEnum: Record<string, number> = {};
+  for (const [chave, valor] of Object.entries(minStockDigitado)) {
+    estoqueMinimoPorTipoEnum[normalizarTipoSanguineo(chave)] = Number(valor);
+  }
 
-  const estoqueMinimoSimples: Record<string, number> = {
-    "O-": 20,
-    "O+": 30,
-    "A+": 25,
-    "A-": 15,
-  };
+  // AJUSTE 1 & 2: Latitude, Longitude e Relations entram diretamente sem fallback forçado
+  const latVal = Number(payload.latitude);
+  const lngVal = Number(payload.longitude);
+  const relVal = Number(payload.relations);
 
   const body = {
     nome: nomeVal,
@@ -163,12 +156,14 @@ export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
     endereco: localVal,
     localizacao: localVal,
     location: localVal,
-    latitude: payload.latitude || -8.0539,
-    longitude: payload.longitude || -34.8999,
+    bairro: payload.neighborhood || payload.bairro,
+    neighborhood: payload.neighborhood || payload.bairro,
+    latitude: !isNaN(latVal) ? latVal : -8.0539,
+    longitude: !isNaN(lngVal) ? lngVal : -34.8999,
     estoqueMinimoPorTipo: estoqueMinimoPorTipoEnum,
-    estoqueMinimo: estoqueMinimoSimples,
-    minStock: estoqueMinimoSimples,
-    relations: payload.relations || 4,
+    estoqueMinimo: minStockDigitado,
+    minStock: minStockDigitado,
+    relations: !isNaN(relVal) ? relVal : 4,
   };
 
   const res = await fetch(`${API_BASE_URL}/instituicoes`, {
@@ -193,12 +188,14 @@ export async function atualizarInstituicaoApi(id: number | string, payload: any)
   const nomeVal = payload.name || payload.nome || "";
   const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
 
-  const estoqueMinimoPorTipoEnum: Record<string, number> = {
-    O_NEGATIVO: 20,
-    O_POSITIVO: 30,
-    A_POSITIVO: 25,
-    A_NEGATIVO: 15,
-  };
+  const minStockDigitado = payload.minStock || {};
+  const estoqueMinimoPorTipoEnum: Record<string, number> = {};
+  for (const [chave, valor] of Object.entries(minStockDigitado)) {
+    estoqueMinimoPorTipoEnum[normalizarTipoSanguineo(chave)] = Number(valor);
+  }
+
+  const latVal = payload.latitude !== undefined ? Number(payload.latitude) : undefined;
+  const lngVal = payload.longitude !== undefined ? Number(payload.longitude) : undefined;
 
   const body = {
     nome: nomeVal,
@@ -207,11 +204,13 @@ export async function atualizarInstituicaoApi(id: number | string, payload: any)
     type: tipoEnum,
     endereco: localVal,
     location: localVal,
-    latitude: payload.latitude || -8.0539,
-    longitude: payload.longitude || -34.8999,
+    bairro: payload.neighborhood || payload.bairro,
+    neighborhood: payload.neighborhood || payload.bairro,
+    latitude: latVal,
+    longitude: lngVal,
     estoqueMinimoPorTipo: estoqueMinimoPorTipoEnum,
-    minStock: { "O-": 20, "O+": 30 },
-    relations: Number(payload.relations || 4),
+    minStock: minStockDigitado,
+    relations: Number(payload.relations !== undefined ? payload.relations : 4),
   };
 
   await fetch(`${API_BASE_URL}/instituicoes/${id}`, {
@@ -266,20 +265,13 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
 
   const sangueEnum = normalizarTipoSanguineo(dados.bloodType || dados.tipoSanguineo);
   const compEnum = normalizarComponente(dados.component || dados.componente || dados.tipoComponente);
-  const qtd = Number(dados.quantity || dados.quantidade || dados.quantidadeUnidades || dados.volume || 5);
+  const qtd = Number(dados.quantity || dados.quantidade || dados.quantidadeUnidades || dados.volume || 1);
 
-  // Garante que dataColeta seja a data local de hoje, respeitando a validação @PastOrPresent
-  const dataHojeLocal = obterDataHojeLocal();
+  // Data de coleta informada ou data de hoje local
+  const dataColetaFinal = dados.collectionDate ? formatarDataISO(dados.collectionDate) : obterDataHojeLocal();
 
-  // Validade calculada para o futuro
-  const dVal = new Date();
-  dVal.setDate(dVal.getDate() + 35);
-  const anoV = dVal.getFullYear();
-  const mesV = String(dVal.getMonth() + 1).padStart(2, "0");
-  const diaV = String(dVal.getDate()).padStart(2, "0");
-  const validadeCalculada = `${anoV}-${mesV}-${diaV}`;
-
-  const validadeFinal = dados.expiryDate ? formatarDataISO(dados.expiryDate) : validadeCalculada;
+  // AJUSTE 4: Envia a data de validade escolhida no formulário sem forçar +35 dias
+  const validadeFinal = dados.expiryDate ? formatarDataISO(dados.expiryDate) : "";
 
   const body = {
     instituicaoId: instId,
@@ -292,14 +284,13 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
     quantidade: qtd,
     quantidadeUnidades: qtd,
     quantity: qtd,
-    dataColeta: dataHojeLocal, // Garantido no presente local
-    collectionDate: dataHojeLocal,
+    dataColeta: dataColetaFinal,
+    collectionDate: dataColetaFinal,
     dataValidade: validadeFinal,
     validade: validadeFinal,
     expiryDate: validadeFinal,
   };
 
-  // Endpoint confirmado no backend: POST /api/v1/instituicoes/{id}/lotes
   const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

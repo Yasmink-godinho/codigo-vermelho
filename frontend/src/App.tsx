@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Sidebar, { type NavItem } from "@/components/Sidebar";
 import {
   IconArrows, IconBarChart2, IconBell, IconBuilding, IconClipboard, IconGrid,
   IconList, IconTruck, IconWifi,
 } from "@/components/icons";
-import { DEMO_LOTES, DEMO_REQUISICOES, institutionsData } from "@/data/mockData";
+import { DEMO_LOTES, DEMO_REQUISICOES, institutionsData, neighborhoods } from "@/data/mockData";
 import {
   buscarInstituicoesApi,
   cadastrarInstituicaoApi,
@@ -33,6 +33,22 @@ import RegistrarLoteScreen from "@/pages/RegistrarLote";
 import RequisicoesScreen from "@/pages/Requisicoes";
 import TransferenciasScreen from "@/pages/Transferencias";
 
+function extrairBairro(location?: string, idNum?: number): string {
+  if (!location) {
+    if (idNum === 1) return "Derby";
+    if (idNum === 2) return "Graças";
+    return "Ilha do Leite";
+  }
+  for (const b of neighborhoods) {
+    if (location.toLowerCase().includes(b.toLowerCase())) {
+      return b;
+    }
+  }
+  if (idNum === 1) return "Derby";
+  if (idNum === 2) return "Graças";
+  return "Ilha do Leite";
+}
+
 function MainLayout({
                       currentUser,
                       onLogout,
@@ -51,7 +67,7 @@ function MainLayout({
     if (path.includes("/analise")) return "analise";
     if (path.includes("/transferencias")) return "transferencias";
     if (path.includes("/rede")) return "rede";
-    if (path.includes("/instituicoes/nova")) return "cadastrar_instituicao";
+    if (path.includes("/nova-instituicao") || path.includes("/instituicoes/nova")) return "cadastrar_instituicao";
     if (path.includes("/instituicoes")) return "instituicoes";
     if (path.includes("/registrar-lote")) return "registrar_lote";
     if (path.includes("/estoque")) return "estoque_instituicao";
@@ -134,6 +150,31 @@ function MainLayout({
   );
 }
 
+function EstoqueRouteWrapper({
+                               institutions,
+                               lotes,
+                               newLoteId,
+                             }: {
+  institutions: Institution[];
+  lotes: Lote[];
+  newLoteId: number | null;
+}) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const instIdNum = Number(id) || 1;
+
+  return (
+      <EstoqueInstituicaoScreen
+          institutions={institutions}
+          instId={instIdNum}
+          lotes={lotes}
+          newLoteId={newLoteId}
+          onBack={() => navigate("/instituicoes")}
+          onRegistrarLote={() => navigate("/registrar-lote")}
+      />
+  );
+}
+
 export default function App() {
   const navigate = useNavigate();
 
@@ -155,7 +196,7 @@ export default function App() {
     if (id === 2) return 14;
     if (id === 3) return 5;
     if (id === 4) return 4;
-    return ((id * 3) % 11) + 2;
+    return 5;
   };
 
   const carregarDadosDoBackend = () => {
@@ -166,18 +207,58 @@ export default function App() {
               return dados.map((d: any) => {
                 const idNum = Number(d.id);
                 const anterior = prevExistentes.find((p) => Number(p.id) === idNum);
+                const bairroReal =
+                    d.neighborhood ||
+                    d.bairro ||
+                    anterior?.neighborhood ||
+                    extrairBairro(d.location || d.endereco, idNum);
+
+                const latVal =
+                    d.latitude !== undefined && d.latitude !== null && d.latitude !== 0
+                        ? Number(d.latitude)
+                        : anterior?.latitude !== undefined
+                            ? anterior.latitude
+                            : -8.0539;
+
+                const lngVal =
+                    d.longitude !== undefined && d.longitude !== null && d.longitude !== 0
+                        ? Number(d.longitude)
+                        : anterior?.longitude !== undefined
+                            ? anterior.longitude
+                            : -34.8999;
+
+                const relVal =
+                    d.relations !== undefined && d.relations !== null
+                        ? Number(d.relations)
+                        : anterior?.relations !== undefined
+                            ? anterior.relations
+                            : obterRelacoesIniciais(idNum);
+
+                const minStockFinal =
+                    d.minStock && Object.keys(d.minStock).length > 0
+                        ? d.minStock
+                        : anterior?.minStock && Object.keys(anterior.minStock).length > 0
+                            ? anterior.minStock
+                            : { "O-": 20, "O+": 30 };
+
+                // Tipos sanguíneos de fallback mantidos
+                const componentesTipos =
+                    anterior?.components && anterior.components[0]?.includes("-")
+                        ? anterior.components
+                        : ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"];
+
                 return {
                   id: idNum,
                   name: d.name || d.nome,
                   type: d.type || d.tipo || "Hospital Público",
-                  location: d.location || d.endereco || d.localizacao || "Recife, PE",
-                  neighborhood: d.neighborhood || (idNum === 1 ? "Derby" : idNum === 2 ? "Graças" : "Casa Amarela"),
-                  status: d.status || "ativa",
-                  components: d.components || ["Concentrado de Hemácias", "Plasma", "Plaquetas"],
-                  relations: anterior?.relations !== undefined ? anterior.relations : (d.relations || obterRelacoesIniciais(idNum)),
-                  latitude: d.latitude || -8.0539,
-                  longitude: d.longitude || -34.8999,
-                  minStock: d.minStock && Object.keys(d.minStock).length > 0 ? d.minStock : { "O-": 20, "O+": 30 },
+                  location: d.location || d.endereco || d.localizacao || `${bairroReal}, Recife, PE`,
+                  neighborhood: bairroReal,
+                  status: d.status || anterior?.status || "ativa",
+                  components: componentesTipos,
+                  relations: relVal,
+                  latitude: latVal,
+                  longitude: lngVal,
+                  minStock: minStockFinal,
                   hasHistory: true,
                 };
               });
@@ -189,24 +270,45 @@ export default function App() {
     buscarLotesApi()
         .then((dados: any) => {
           if (dados && dados.length > 0) {
-            const formatados = dados.map((l: any) => {
-              const instIdNum = Number(l.instId || l.instituicaoId);
-              const instEncontrada = institutions.find((i) => Number(i.id) === instIdNum);
-              const nomeInst = l.instName || instEncontrada?.name || "Unidade de Saúde";
-              return {
-                id: l.id,
-                instId: instIdNum,
-                instName: nomeInst,
-                bloodType: l.bloodType || (l.tipoSanguineo ? l.tipoSanguineo.replace("_NEGATIVO", "-").replace("_POSITIVO", "+") : "O-"),
-                component: l.component || (l.tipoComponente === "CONCENTRADO_HEMACIAS" ? "Concentrado de Hemácias" : l.tipoComponente === "PLAQUETAS" ? "Plaquetas" : "Plasma"),
-                collectionDate: l.collectionDate || l.dataColeta,
-                expiryDate: l.expiryDate || l.dataValidade,
-                quantity: l.quantity || l.quantidade || l.quantidadeUnidades,
-                lotCode: l.lotCode || `LT-${String(l.id).padStart(4, "0")}`,
-                status: l.status || "normal",
-              };
+            setLotes((prevExistentes) => {
+              const daApi = dados.map((l: any) => {
+                const instIdNum = Number(l.instId || l.instituicaoId);
+                const instEncontrada = institutions.find((i) => Number(i.id) === instIdNum);
+                const nomeInst = l.instName || instEncontrada?.name || "Unidade de Saúde";
+                const loteAnterior = prevExistentes.find((p) => Number(p.id) === Number(l.id));
+
+                const dataValidadeFinal =
+                    l.expiryDate ||
+                    l.dataValidade ||
+                    loteAnterior?.expiryDate ||
+                    "2026-11-20";
+
+                return {
+                  id: l.id,
+                  instId: instIdNum,
+                  instName: nomeInst,
+                  bloodType:
+                      l.bloodType ||
+                      (l.tipoSanguineo ? l.tipoSanguineo.replace("_NEGATIVO", "-").replace("_POSITIVO", "+") : "O-"),
+                  component:
+                      l.component ||
+                      (l.tipoComponente === "CONCENTRADO_HEMACIAS"
+                          ? "Concentrado de Hemácias"
+                          : l.tipoComponente === "PLAQUETAS"
+                              ? "Plaquetas"
+                              : "Plasma"),
+                  collectionDate: l.collectionDate || l.dataColeta || obterDataHojeLocal(),
+                  expiryDate: dataValidadeFinal,
+                  quantity: Number(l.quantity || l.quantidade || l.quantidadeUnidades || 1),
+                  lotCode: l.lotCode || `LT-${String(l.id).padStart(4, "0")}`,
+                  status: l.status || "normal",
+                };
+              });
+
+              // Preserva lotes criados localmente que ainda não constem no backend
+              const locais = prevExistentes.filter((p) => !daApi.some((a: any) => Number(a.id) === Number(p.id)));
+              return [...locais, ...daApi];
             });
-            setLotes(formatados);
           }
         })
         .catch((err) => console.warn("Backend offline para lotes:", err));
@@ -232,6 +334,63 @@ export default function App() {
     localStorage.removeItem("@codigo_vermelho:user");
   };
 
+  const handleSalvarInstituicao = async (inst: any) => {
+    try {
+      const latDigitada = Number(inst.lat !== undefined ? inst.lat : inst.latitude);
+      const lngDigitada = Number(inst.lng !== undefined ? inst.lng : inst.longitude);
+      const relDigitada = Number(inst.relations !== undefined ? inst.relations : 5);
+
+      const saved = await cadastrarInstituicaoApi({
+        nome: inst.name,
+        name: inst.name,
+        tipo: inst.type,
+        type: inst.type,
+        endereco: inst.location,
+        location: inst.location,
+        neighborhood: inst.neighborhood,
+        bairro: inst.neighborhood,
+        latitude: latDigitada,
+        longitude: lngDigitada,
+        relations: relDigitada,
+        minStock: inst.minStock,
+        estoqueMinimoPorTipo: inst.minStock,
+      });
+
+      const novaInstCompleta: Institution = {
+        id: saved?.id || Date.now(),
+        name: inst.name,
+        type: inst.type,
+        location: inst.location,
+        neighborhood: inst.neighborhood,
+        latitude: latDigitada,
+        longitude: lngDigitada,
+        relations: relDigitada,
+        status: inst.status || "ativa",
+        // Tipos sanguíneos atribuídos para a legenda da listagem
+        components: ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
+        minStock: inst.minStock,
+        hasHistory: false,
+      };
+
+      setInstitutions((prev) => [novaInstCompleta, ...prev.filter((i) => i.id !== novaInstCompleta.id)]);
+      setNewInstId(novaInstCompleta.id);
+      carregarDadosDoBackend();
+    } catch (e) {
+      const id = Date.now();
+      setInstitutions((prev) => [
+        {
+          ...inst,
+          id,
+          components: ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
+          hasHistory: false
+        },
+        ...prev
+      ]);
+      setNewInstId(id);
+    }
+    navigate("/instituicoes");
+  };
+
   return (
       <Routes>
         <Route
@@ -248,7 +407,7 @@ export default function App() {
         {currentUser ? (
             <Route element={<MainLayout currentUser={currentUser} onLogout={handleLogout} />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardScreen />} />
+              <Route path="/dashboard" element={<DashboardScreen institutions={institutions} lotes={lotes} />} />
               <Route path="/alertas" element={<AlertasScreen filter={alertFilter} setFilter={setAlertFilter} />} />
               <Route path="/fefo" element={<FefoScreen lotes={lotes} institutions={institutions} />} />
 
@@ -319,33 +478,24 @@ export default function App() {
               />
 
               <Route
+                  path="/nova-instituicao"
+                  element={
+                    <CadastrarInstituicaoScreen
+                        onCancel={() => navigate("/instituicoes")}
+                        onSave={handleSalvarInstituicao}
+                    />
+                  }
+              />
+              <Route
                   path="/instituicoes/nova"
                   element={
                     <CadastrarInstituicaoScreen
                         onCancel={() => navigate("/instituicoes")}
-                        onSave={async (inst) => {
-                          try {
-                            const saved = await cadastrarInstituicaoApi({
-                              nome: inst.name,
-                              tipo: inst.type,
-                              endereco: inst.location,
-                              latitude: -8.0539,
-                              longitude: -34.8811,
-                            });
-                            carregarDadosDoBackend();
-                            setNewInstId(saved.id || Date.now());
-                          } catch (e) {
-                            const id = Date.now();
-                            setInstitutions((prev) => [{ ...inst, id, hasHistory: false }, ...prev]);
-                            setNewInstId(id);
-                          }
-                          navigate("/instituicoes");
-                        }}
+                        onSave={handleSalvarInstituicao}
                     />
                   }
               />
 
-              {/* Registro de Lote persistindo via API com sucesso */}
               <Route
                   path="/registrar-lote"
                   element={
@@ -355,39 +505,46 @@ export default function App() {
                         lotes={lotes}
                         onCancel={() => navigate("/instituicoes")}
                         onSave={async (lote) => {
+                          let loteIdFinal = Date.now();
+                          let loteCodeFinal = lote.lotCode;
+                          let dataValidadeFinal = lote.expiryDate || "2026-11-20";
+
                           try {
                             const resSalvo = await registrarLoteApi(lote.instId, {
                               bloodType: lote.bloodType,
                               component: lote.component,
                               quantity: Number(lote.quantity),
+                              collectionDate: lote.collectionDate,
+                              expiryDate: lote.expiryDate,
                             });
 
-                            // Instancia e adiciona o lote imediatamente na Fila FEFO
-                            const instObj = institutions.find((i) => Number(i.id) === Number(lote.instId));
-                            const novoLote: Lote = {
-                              id: resSalvo?.id || Date.now(),
-                              instId: Number(lote.instId),
-                              instName: instObj?.name || "Unidade de Saúde",
-                              bloodType: lote.bloodType,
-                              component: lote.component,
-                              collectionDate: obterDataHojeLocal(),
-                              expiryDate: resSalvo?.expiryDate || resSalvo?.dataValidade || "2026-11-20",
-                              quantity: Number(lote.quantity),
-                              lotCode: resSalvo?.lotCode || `LT-${String(resSalvo?.id || Date.now()).slice(-4)}`,
-                              status: "normal",
-                            };
-
-                            setLotes((prev) => [novoLote, ...prev]);
-                            setNewLoteId(novoLote.id);
-                            carregarDadosDoBackend();
+                            if (resSalvo?.id) loteIdFinal = resSalvo.id;
+                            if (resSalvo?.lotCode) loteCodeFinal = resSalvo.lotCode;
+                            if (resSalvo?.expiryDate || resSalvo?.dataValidade) {
+                              dataValidadeFinal = resSalvo.expiryDate || resSalvo.dataValidade;
+                            }
                           } catch (e) {
-                            console.warn("Fallback acionado:", e);
-                            const id = Date.now();
-                            const savedLocal: Lote = { ...lote, id, createdAt: Date.now() };
-                            setLotes((prev) => [savedLocal, ...prev]);
-                            setNewLoteId(id);
+                            console.warn("Lote registrado localmente:", e);
                           }
-                          navigate("/fefo");
+
+                          const instObj = institutions.find((i) => Number(i.id) === Number(lote.instId));
+                          const novoLote: Lote = {
+                            id: loteIdFinal,
+                            instId: Number(lote.instId),
+                            instName: instObj?.name || lote.instName || "Unidade de Saúde",
+                            bloodType: lote.bloodType,
+                            component: lote.component,
+                            collectionDate: lote.collectionDate || obterDataHojeLocal(),
+                            expiryDate: dataValidadeFinal,
+                            quantity: Number(lote.quantity),
+                            lotCode: loteCodeFinal,
+                            status: "normal",
+                          };
+
+                          // Insere no início do estado compartilhado para exibição imediata no FEFO e Estoque
+                          setLotes((prev) => [novoLote, ...prev.filter((p) => Number(p.id) !== Number(novoLote.id))]);
+                          setNewLoteId(novoLote.id);
+                          navigate(`/estoque/${lote.instId}`);
                         }}
                     />
                   }
@@ -396,13 +553,10 @@ export default function App() {
               <Route
                   path="/estoque/:id"
                   element={
-                    <EstoqueInstituicaoScreen
+                    <EstoqueRouteWrapper
                         institutions={institutions}
-                        instId={1}
                         lotes={lotes}
                         newLoteId={newLoteId}
-                        onBack={() => navigate("/instituicoes")}
-                        onRegistrarLote={() => navigate("/registrar-lote")}
                     />
                   }
               />
