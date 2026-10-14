@@ -13,9 +13,15 @@ record RotaResultado(
     List<Long> instituicoesIds,      // caminho ordenado (origem → ... → destino)
     double distanciaTotalKm,
     double tempoEstimadoMinutos,
-    boolean rotaEncontrada           // false se não existe caminho na malha
+    boolean rotaEncontrada,          // false se não existe caminho na malha
+    List<String> nomesInstituicoes,  // mesmos pontos do caminho, com o nome (pro front mostrar o percurso)
+    String mensagem                  // explica o resultado (ex: "Nao ha rota disponivel entre ...")
 ) {}
 ```
+
+> Os 4 primeiros campos são o contrato original. `nomesInstituicoes` e `mensagem` foram acrescentados na implementação da US05 (Entrega 03). Em Java, o record fica em `controllers/dto/RotaResultado.java` e o cálculo em `RotaService`.
+
+As arestas do grafo vêm da entidade `Ligacao` (cadastrada em `POST /api/v1/ligacoes`) e o peso de cada uma é a distância de Haversine entre as coordenadas das duas instituições.
 
 ---
 

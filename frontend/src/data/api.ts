@@ -41,14 +41,20 @@ export interface RequisicaoAPI {
   createdAt?: number | string;
 }
 
+
+// Mesmo formato do TransferenciaResponse do backend (docs/RESULTADO_ROTA.md, secao 4)
 export interface TransferenciaAPI {
-  id: number | string;
-  from?: string;
-  to?: string;
-  comp?: string;
-  qty?: number;
-  status?: string;
-  temperature?: string;
+  id: number;
+  codigo: string;
+  instituicaoOrigem: string;
+  instituicaoDestino: string;
+  tipoSanguineo: string;
+  componente: string;
+  quantidade: number;
+  rota: string;
+  distanciaKm: number;
+  previsaoChegada: string;
+  statusTransferencia: string;
 }
 
 // ─── Conversores de Enums e Datas ─────────────────────────────────────────────
@@ -375,3 +381,134 @@ export async function buscarTransferenciasApi(): Promise<TransferenciaAPI[]> {
 
 export const listarTransferenciasApi = buscarTransferenciasApi;
 export const buscarRedistribuicoesApi = buscarTransferenciasApi;
+
+// ─── 5. Rotas (US05) ──────────────────────────────────────────────────────────
+
+export interface RotaAPI {
+  instituicoesIds: number[];
+  distanciaTotalKm: number;
+  tempoEstimadoMinutos: number;
+  rotaEncontrada: boolean;
+  nomesInstituicoes: string[];
+  mensagem: string;
+}
+
+// Sempre volta 200. Se nao tem caminho, rotaEncontrada vem false e a mensagem explica.
+export async function calcularRotaApi(
+  origemId: number | string,
+  destinoId: number | string
+): Promise<RotaAPI> {
+  const res = await fetch(
+    `${API_BASE_URL}/rotas?origem=${origemId}&destino=${destinoId}`
+);
+
+if (!res.ok) {
+  const err = await res.json().catch(() => null);
+  throw new Error(err?.mensagem || `Erro ao calcular rota: ${res.statusText}`);
+}
+
+return res.json();
+}
+
+// ─── 6. Telemetria e alertas térmicos (US07) ──────────────────────────────────
+
+export interface AlertaTermicoAPI {
+  id: number;
+  transferenciaId: number;
+  codigoTransferencia: string;
+  leituraId: number;
+  temperatura: number;
+  nivel: string;
+  mensagem: string;
+  dataHora: string;
+}
+
+export interface LeituraTelemetriaAPI {
+  id: number;
+  transferenciaId: number;
+  temperatura: number;
+  dataHora: string;
+  foraDaFaixa: boolean;
+  // so vem preenchido na resposta do POST, quando a leitura gerou alerta
+  alerta: AlertaTermicoAPI | null;
+}
+
+export async function registrarLeituraApi(
+    transferenciaId: number | string,
+    temperatura: number
+): Promise<LeituraTelemetriaAPI> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temperatura }),
+      }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.mensagem || `Erro ao registrar leitura: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function buscarHistoricoTelemetriaApi(
+    transferenciaId: number | string
+): Promise<LeituraTelemetriaAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`
+  );
+
+  if (!res.ok) {
+    throw new Error(
+        `Erro ao buscar histórico de temperatura: ${res.statusText}`
+    );
+  }
+
+  return res.json();
+}
+
+export async function buscarAlertasTransferenciaApi(
+    transferenciaId: number | string
+): Promise<AlertaTermicoAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/alertas`
+  );
+
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar alertas da transferência: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function buscarAlertasTermicosApi(): Promise<AlertaTermicoAPI[]> {
+  const res = await fetch(`${API_BASE_URL}/alertas-termicos`);
+
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar alertas térmicos: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+// Fonte simulada pra demonstracao (comDesvio=true faz a ultima leitura sair da faixa)
+export async function simularTelemetriaApi(
+    transferenciaId: number | string,
+    quantidade = 5,
+    comDesvio = false
+): Promise<LeituraTelemetriaAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria/simulacao?quantidade=${quantidade}&comDesvio=${comDesvio}`,
+      { method: "POST" }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.mensagem || `Erro ao simular telemetria: ${res.statusText}`);
+  }
+
+  return res.json();
+}
