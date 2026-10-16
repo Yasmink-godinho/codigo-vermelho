@@ -51,9 +51,22 @@ export interface TransferenciaAPI {
   temperature?: string;
 }
 
-// ─── Conversores de Enums e Datas ─────────────────────────────────────────────
+export interface AnaliseConsumoApiData {
+  modo: string;
+  threads: number;
+  registros: number;
+  somaConsumo: number;
+  media: number;
+  variancia: number;
+  desvioPadrao: number;
+  coeficienteVariacao: number;
+  mediana: number;
+  percentil95: number;
+  tempoProcessamentoNanos: number;
+}
 
-// Obtém a data local YYYY-MM-DD SEM conversão UTC para não cair na validação @PastOrPresent
+// ─── Conversores de Enums e Datas ───────────────────────────────
+
 export function obterDataHojeLocal(): string {
   const agora = new Date();
   const ano = agora.getFullYear();
@@ -66,11 +79,18 @@ export function formatarDataISO(dataStr: any): string {
   if (!dataStr) return obterDataHojeLocal();
   const s = String(dataStr).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
   if (s.includes("/")) {
     const partes = s.split("/");
     if (partes.length === 3) {
       if (partes[2].length === 4) {
-        return `${partes[2]}-${partes[0].padStart(2, "0")}-${partes[1].padStart(2, "0")}`;
+        const ano = partes[2];
+        const mes = partes[0].padStart(2, "0");
+        const dia = partes[1].padStart(2, "0");
+        return `${ano}-${mes}-${dia}`;
+      }
+      if (partes[0].length === 4) {
+        return `${partes[0]}-${partes[1].padStart(2, "0")}-${partes[2].padStart(2, "0")}`;
       }
     }
   }
@@ -110,7 +130,44 @@ export function normalizarTipoInstituicao(tipo: string = ""): string {
   return "HOSPITAL_PUBLICO";
 }
 
-// ─── 1. Instituições ──────────────────────────────────────────────────────────
+export function normalizarNivelUrgencia(urg: string = ""): string {
+  const u = String(urg).toLowerCase();
+  if (u.includes("emerg")) return "EMERGENCIA";
+  if (u.includes("prior")) return "PRIORITARIA";
+  return "ROTINA";
+}
+
+export function desnormalizarTipoSanguineo(tipo: string = ""): string {
+  if (!tipo) return "O-";
+  return tipo.replace("_NEGATIVO", "-").replace("_POSITIVO", "+");
+}
+
+export function desnormalizarComponente(comp: string = ""): string {
+  const map: Record<string, string> = {
+    CONCENTRADO_HEMACIAS: "Concentrado de Hemácias",
+    PLASMA: "Plasma",
+    PLAQUETAS: "Plaquetas",
+    CRIOPRECIPITADO: "Crioprecipitado",
+  };
+  return map[comp] || comp || "Concentrado de Hemácias";
+}
+
+export function desnormalizarNivelUrgencia(urg: string = ""): "rotina" | "prioritaria" | "emergencia" {
+  const u = String(urg).toUpperCase();
+  if (u === "EMERGENCIA") return "emergencia";
+  if (u === "PRIORITARIA") return "prioritaria";
+  return "rotina";
+}
+
+export function desnormalizarStatusRequisicao(st: string = ""): "pendente" | "em_analise" | "aprovada" | "negada" {
+  const s = String(st).toUpperCase();
+  if (s === "APROVADA") return "aprovada";
+  if (s === "RECUSADA" || s === "NEGADA") return "negada";
+  if (s === "EM_ANALISE") return "em_analise";
+  return "pendente";
+}
+
+// ─── 1. Instituições ────────────────────────────────
 
 export async function getInstituicoes(): Promise<any[]> {
   const res = await fetch(`${API_BASE_URL}/instituicoes`);
@@ -136,14 +193,12 @@ export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
   const nomeVal = payload.name || payload.nome || "";
   const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
 
-  // AJUSTE 3: Preserva estritamente os valores digitados de minStock mapeados para os Enums aceitos pelo Spring Boot
   const minStockDigitado = payload.minStock || payload.estoqueMinimo || {};
   const estoqueMinimoPorTipoEnum: Record<string, number> = {};
   for (const [chave, valor] of Object.entries(minStockDigitado)) {
     estoqueMinimoPorTipoEnum[normalizarTipoSanguineo(chave)] = Number(valor);
   }
 
-  // AJUSTE 1 & 2: Latitude, Longitude e Relations entram diretamente sem fallback forçado
   const latVal = Number(payload.latitude);
   const lngVal = Number(payload.longitude);
   const relVal = Number(payload.relations);
@@ -227,7 +282,7 @@ export async function excluirInstituicaoApi(id: number | string): Promise<void> 
   if (!res.ok) throw new Error(`Falha ao excluir instituição: ${res.statusText}`);
 }
 
-// ─── 2. Lotes e Fila FEFO ─────────────────────────────────────────────────────
+// ─── 2. Lotes e Fila FEFO ───────────────────────────
 
 export async function getFilaFEFO(): Promise<any[]> {
   const res = await fetch(`${API_BASE_URL}/lotes/fila-fefo`);
@@ -267,27 +322,38 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
   const compEnum = normalizarComponente(dados.component || dados.componente || dados.tipoComponente);
   const qtd = Number(dados.quantity || dados.quantidade || dados.quantidadeUnidades || dados.volume || 1);
 
-  // Data de coleta informada ou data de hoje local
-  const dataColetaFinal = dados.collectionDate ? formatarDataISO(dados.collectionDate) : obterDataHojeLocal();
+  // Formatação segura ISO YYYY-MM-DD
+  let dataColetaFinal = dados.collectionDate ? formatarDataISO(dados.collectionDate) : obterDataHojeLocal();
+  const hoje = obterDataHojeLocal();
+  if (dataColetaFinal > hoje) {
+    dataColetaFinal = hoje;
+  }
 
-  // AJUSTE 4: Envia a data de validade escolhida no formulário sem forçar +35 dias
-  const validadeFinal = dados.expiryDate ? formatarDataISO(dados.expiryDate) : "";
+  let validadeFinal = dados.expiryDate ? formatarDataISO(dados.expiryDate) : "";
+  if (!validadeFinal || validadeFinal <= hoje) {
+    const dVal = new Date();
+    dVal.setDate(dVal.getDate() + 35);
+    const ano = dVal.getFullYear();
+    const mes = String(dVal.getMonth() + 1).padStart(2, "0");
+    const dia = String(dVal.getDate()).padStart(2, "0");
+    validadeFinal = `${ano}-${mes}-${dia}`;
+  }
 
+  const codLote = dados.lotCode || dados.codigoLote || `LT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Payload atendendo estritamente aos campos do NovoLoteRequest do Spring Boot
   const body = {
-    instituicaoId: instId,
-    instId: instId,
+    codigoLote: codLote,
+    lotCode: codLote,
     tipoSanguineo: sangueEnum,
     bloodType: dados.bloodType || "O-",
-    tipoComponente: compEnum,
-    component: dados.component || "Concentrado de Hemácias",
     componente: compEnum,
+    tipoComponente: compEnum,
     quantidade: qtd,
-    quantidadeUnidades: qtd,
     quantity: qtd,
     dataColeta: dataColetaFinal,
     collectionDate: dataColetaFinal,
     dataValidade: validadeFinal,
-    validade: validadeFinal,
     expiryDate: validadeFinal,
   };
 
@@ -322,33 +388,63 @@ export async function atualizarLoteApi(id: number | string, payload: Partial<Lot
 
 export async function excluirLoteApi(id: number | string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/lotes/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(`Erro ao excluir lote: ${res.statusText}`);
+  if (!res.ok) throw new Error(`Falha ao excluir lote: ${res.statusText}`);
 }
 
-// ─── 3. Requisições ───────────────────────────────────────────────────────────
+// ─── 3. Requisições ──────────────────────
 
-export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
-  const res = await fetch(`${API_BASE_URL}/requisicoes`);
+export async function buscarRequisicoesApi(
+    status?: string,
+    urgency?: string
+): Promise<any[]> {
+  let url = `${API_BASE_URL}/requisicoes`;
+  const params = new URLSearchParams();
+  if (status && status !== "todas") {
+    params.append("status", status === "negada" ? "RECUSADA" : status.toUpperCase());
+  }
+  if (urgency && urgency !== "todas") {
+    params.append("urgencia", normalizarNivelUrgencia(urgency));
+  }
+  if (params.toString()) {
+    url += `?${params.toString()}`;
+  }
+
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Erro ao buscar requisições: ${res.statusText}`);
-  return res.json();
+  const dados = await res.json();
+
+  return dados.map((item: any) => ({
+    id: item.id,
+    reqCode: item.codigoRequisicao || item.reqCode || `REQ-${item.id}`,
+    instId: item.instituicaoId || item.instId || 1,
+    instName: item.instituicaoNome || item.instName || "Unidade Solicitante",
+    bloodType: desnormalizarTipoSanguineo(item.tipoSanguineo || item.bloodType),
+    component: desnormalizarComponente(item.componente || item.component),
+    quantity: Number(item.volume !== undefined ? item.volume : item.quantity !== undefined ? item.quantity : 1),
+    urgency: desnormalizarNivelUrgencia(item.nivelUrgencia || item.urgency),
+    status: desnormalizarStatusRequisicao(item.status || item.statusRequisicao),
+    observations: item.observacoes || item.observations || "",
+    createdAt: item.dataCriacao ? new Date(item.dataCriacao).getTime() : Date.now(),
+  }));
 }
 
 export const listarRequisicoesApi = buscarRequisicoesApi;
 export const getRequisicoesApi = buscarRequisicoesApi;
 
 export async function cadastrarRequisicaoApi(payload: any): Promise<any> {
-  const sangue = normalizarTipoSanguineo(payload.bloodType || payload.tipoSanguineo);
-  const comp = normalizarComponente(payload.component || payload.componente);
+  const sangueEnum = normalizarTipoSanguineo(payload.bloodType || payload.tipoSanguineo);
+  const compEnum = normalizarComponente(payload.component || payload.componente);
   const instId = Number(payload.instId || payload.instituicaoId || 1);
   const volume = Number(payload.quantity || payload.volume || payload.quantidade || 1);
+  const urgEnum = normalizarNivelUrgencia(payload.urgency || payload.nivelUrgencia);
 
   const body = {
     instituicaoId: instId,
-    tipoSanguineo: sangue,
-    componente: comp,
+    tipoSanguineo: sangueEnum,
+    componente: compEnum,
     volume: volume,
     quantidade: volume,
-    nivelUrgencia: payload.urgency || payload.nivelUrgencia || "NORMAL",
+    nivelUrgencia: urgEnum,
     observacoes: payload.observations || payload.observacoes || "",
   };
 
@@ -358,14 +454,43 @@ export async function cadastrarRequisicaoApi(payload: any): Promise<any> {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) throw new Error(`Erro ao emitir requisição: ${res.statusText}`);
-  return res.json();
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Erro da API ao emitir requisição:", res.status, err);
+    throw new Error(`Falha ao emitir requisição: ${res.statusText}`);
+  }
+
+  const saved = await res.json();
+  return {
+    id: saved.id,
+    reqCode: saved.codigoRequisicao || saved.reqCode || `REQ-${saved.id}`,
+    instId: saved.instituicaoId || saved.instId || instId,
+    instName: saved.instituicaoNome || saved.instName || payload.instName || "Unidade Solicitante",
+    bloodType: desnormalizarTipoSanguineo(saved.tipoSanguineo || saved.bloodType || payload.bloodType),
+    component: desnormalizarComponente(saved.componente || saved.component || payload.component),
+    quantity: Number(saved.volume !== undefined ? saved.volume : saved.quantity !== undefined ? saved.quantity : volume),
+    urgency: desnormalizarNivelUrgencia(saved.nivelUrgencia || saved.urgency || payload.urgency),
+    status: desnormalizarStatusRequisicao(saved.status || "PENDENTE"),
+    observations: saved.observacoes || saved.observations || payload.observations || "",
+    createdAt: saved.dataCriacao ? new Date(saved.dataCriacao).getTime() : Date.now(),
+  };
 }
 
 export const emitirRequisicaoApi = cadastrarRequisicaoApi;
 export const criarRequisicaoApi = cadastrarRequisicaoApi;
 
-// ─── 4. Transferências ─────────────────────────────────────────────────────────
+export async function atualizarStatusRequisicaoApi(id: number | string, status: "APROVADA" | "RECUSADA"): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/requisicoes/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    throw new Error(`Falha ao atualizar status da requisição: ${res.statusText}`);
+  }
+}
+
+// ─── 4. Transferências ───────────────────────────────────────────
 
 export async function buscarTransferenciasApi(): Promise<TransferenciaAPI[]> {
   const res = await fetch(`${API_BASE_URL}/transferencias`);
@@ -375,3 +500,18 @@ export async function buscarTransferenciasApi(): Promise<TransferenciaAPI[]> {
 
 export const listarTransferenciasApi = buscarTransferenciasApi;
 export const buscarRedistribuicoesApi = buscarTransferenciasApi;
+
+// ─── 5. Análise Descritiva de Consumo ────────────────────
+
+export async function buscarAnaliseConsumoApi(
+    registros: number = 100000,
+    modo: "sequencial" | "threads" = "threads",
+    threads: number = 4
+): Promise<AnaliseConsumoApiData> {
+  const url = `${API_BASE_URL}/analises/consumo?registros=${registros}&modo=${modo}&threads=${threads}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar análise de consumo: ${res.status}`);
+  }
+  return res.json();
+}
