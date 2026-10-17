@@ -41,14 +41,54 @@ export interface RequisicaoAPI {
   createdAt?: number | string;
 }
 
+// Formato compatível com TransferenciaResponse do backend
 export interface TransferenciaAPI {
   id: number | string;
+  codigo?: string;
+  instituicaoOrigem?: string;
+  instituicaoDestino?: string;
+  tipoSanguineo?: string;
+  componente?: string;
+  quantidade?: number;
+  rota?: string;
+  distanciaKm?: number;
+  previsaoChegada?: string;
+  statusTransferencia?: string;
   from?: string;
   to?: string;
   comp?: string;
   qty?: number;
   status?: string;
   temperature?: string;
+}
+
+export interface RotaAPI {
+  instituicoesIds: number[];
+  distanciaTotalKm: number;
+  tempoEstimadoMinutos: number;
+  rotaEncontrada: boolean;
+  nomesInstituicoes: string[];
+  mensagem: string;
+}
+
+export interface AlertaTermicoAPI {
+  id: number;
+  transferenciaId: number;
+  codigoTransferencia: string;
+  leituraId: number;
+  temperatura: number;
+  nivel: string;
+  mensagem: string;
+  dataHora: string;
+}
+
+export interface LeituraTelemetriaAPI {
+  id: number;
+  transferenciaId: number;
+  temperatura: number;
+  dataHora: string;
+  foraDaFaixa: boolean;
+  alerta: AlertaTermicoAPI | null;
 }
 
 export interface AnaliseConsumoApiData {
@@ -84,10 +124,7 @@ export function formatarDataISO(dataStr: any): string {
     const partes = s.split("/");
     if (partes.length === 3) {
       if (partes[2].length === 4) {
-        const ano = partes[2];
-        const mes = partes[0].padStart(2, "0");
-        const dia = partes[1].padStart(2, "0");
-        return `${ano}-${mes}-${dia}`;
+        return `${partes[2]}-${partes[0].padStart(2, "0")}-${partes[1].padStart(2, "0")}`;
       }
       if (partes[0].length === 4) {
         return `${partes[0]}-${partes[1].padStart(2, "0")}-${partes[2].padStart(2, "0")}`;
@@ -322,7 +359,6 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
   const compEnum = normalizarComponente(dados.component || dados.componente || dados.tipoComponente);
   const qtd = Number(dados.quantity || dados.quantidade || dados.quantidadeUnidades || dados.volume || 1);
 
-  // Formatação segura ISO YYYY-MM-DD
   let dataColetaFinal = dados.collectionDate ? formatarDataISO(dados.collectionDate) : obterDataHojeLocal();
   const hoje = obterDataHojeLocal();
   if (dataColetaFinal > hoje) {
@@ -341,7 +377,6 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
 
   const codLote = dados.lotCode || dados.codigoLote || `LT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Payload atendendo estritamente aos campos do NovoLoteRequest do Spring Boot
   const body = {
     codigoLote: codLote,
     lotCode: codLote,
@@ -501,7 +536,106 @@ export async function buscarTransferenciasApi(): Promise<TransferenciaAPI[]> {
 export const listarTransferenciasApi = buscarTransferenciasApi;
 export const buscarRedistribuicoesApi = buscarTransferenciasApi;
 
-// ─── 5. Análise Descritiva de Consumo ────────────────────
+// ─── 5. Rotas ──────────────────────────────────────────────────────────
+
+export async function calcularRotaApi(
+    origemId: number | string,
+    destinoId: number | string
+): Promise<RotaAPI> {
+  const res = await fetch(
+      `${API_BASE_URL}/rotas?origem=${origemId}&destino=${destinoId}`
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.mensagem || `Erro ao calcular rota: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+// ─── 6. Telemetria e alertas térmicos ──────────────────────────────────
+
+export async function registrarLeituraApi(
+    transferenciaId: number | string,
+    temperatura: number
+): Promise<LeituraTelemetriaAPI> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temperatura }),
+      }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.mensagem || `Erro ao registrar leitura: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function buscarHistoricoTelemetriaApi(
+    transferenciaId: number | string
+): Promise<LeituraTelemetriaAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`
+  );
+
+  if (!res.ok) {
+    throw new Error(
+        `Erro ao buscar histórico de temperatura: ${res.statusText}`
+    );
+  }
+
+  return res.json();
+}
+
+export async function buscarAlertasTransferenciaApi(
+    transferenciaId: number | string
+): Promise<AlertaTermicoAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/alertas`
+  );
+
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar alertas da transferência: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function buscarAlertasTermicosApi(): Promise<AlertaTermicoAPI[]> {
+  const res = await fetch(`${API_BASE_URL}/alertas-termicos`);
+
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar alertas térmicos: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function simularTelemetriaApi(
+    transferenciaId: number | string,
+    quantidade = 5,
+    comDesvio = false
+): Promise<LeituraTelemetriaAPI[]> {
+  const res = await fetch(
+      `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria/simulacao?quantidade=${quantidade}&comDesvio=${comDesvio}`,
+      { method: "POST" }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.mensagem || `Erro ao simular telemetria: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+// ─── 7. Análise Descritiva de Consumo ────────────────────
 
 export async function buscarAnaliseConsumoApi(
     registros: number = 100000,

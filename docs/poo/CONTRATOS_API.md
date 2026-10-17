@@ -75,7 +75,10 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 
 | Ação | Endpoint | Status esperado |
 |---|---|---|
-| Calcular rota entre duas instituições | `GET /api/v1/rotas?origem={id}&destino={id}` | `200` (sempre — ver observação) |
+| Calcular rota entre duas instituições | `GET /api/v1/rotas?origem={id}&destino={id}` | `200` (sempre — ver observação) · `400` origem igual ao destino · `404` instituição inexistente |
+| Cadastrar ligação (aresta) da malha | `POST /api/v1/ligacoes` | `201` · `409` ligação já existe |
+| Listar / excluir ligações | `GET /api/v1/ligacoes` · `DELETE /api/v1/ligacoes/{id}` | `200` · `204` |
+| Criar transferência usando a rota | `POST /api/v1/transferencias` | `201` · `409` quando não há rota disponível |
 
 | Cenário da história | Contrato atende? | Como |
 |---|---|---|
@@ -105,8 +108,11 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 
 | Ação | Endpoint | Status esperado |
 |---|---|---|
-| Registrar leitura de temperatura | `POST /api/v1/transferencias/{id}/telemetria` | `201` |
-| Listar leituras de uma transferência | `GET /api/v1/transferencias/{id}/telemetria` | `200` |
+| Registrar leitura de temperatura | `POST /api/v1/transferencias/{id}/telemetria` | `201` · `404` transferência inexistente · `409` transferência que não está em transporte |
+| Listar leituras de uma transferência | `GET /api/v1/transferencias/{id}/telemetria` | `200` · `404` |
+| Listar alertas térmicos de uma transferência | `GET /api/v1/transferencias/{id}/alertas` | `200` · `404` |
+| Listar todos os alertas térmicos | `GET /api/v1/alertas-termicos` | `200` |
+| Simular sensor (demonstração) | `POST /api/v1/transferencias/{id}/telemetria/simulacao?quantidade=5&comDesvio=true` | `201` |
 
 | Cenário da história | Contrato atende? | Como |
 |---|---|---|

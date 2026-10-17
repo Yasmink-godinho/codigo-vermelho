@@ -162,7 +162,7 @@ export default function InstituicoesScreen({
         setSelected(inst);
         setFormEdit({
             name: inst.name,
-            type: inst.type,
+            type: inst.type as any,
             location: inst.location,
             neighborhood: inst.neighborhood || extrairBairro(inst.location),
             relations: inst.relations !== undefined ? inst.relations : 4,
@@ -389,7 +389,7 @@ export default function InstituicoesScreen({
                     </div>
                 ) : (
                     filtered.map((inst) => {
-                        const sc = instStatusCfg[inst.status] || instStatusCfg["ativa"];
+                        const sc = instStatusCfg[(inst.status || "ativa") as InstStatus] || instStatusCfg["ativa"];
                         const isInativa = inst.status === "inativa";
                         const canHardDelete = canDelete && !inst.hasHistory && (inst.relations || 0) === 0 && isInativa;
 
@@ -416,7 +416,7 @@ export default function InstituicoesScreen({
                                     <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 truncate">
                                         <IconDroplet size={10} />
                                         {(inst.components || []).slice(0, 4).join(" · ")}
-                                        {(inst.components || []).length > 4 ? ` +${inst.components.length - 4}` : ""}
+                                        {(inst.components || []).length > 4 ? ` +${(inst.components || []).length - 4}` : ""}
                                     </div>
                                 </div>
 
@@ -430,7 +430,7 @@ export default function InstituicoesScreen({
                                 {/* Localização */}
                                 <div className="min-w-0">
                                     <div className="text-[12px] text-slate-600 truncate flex items-center gap-1">
-                                        <IconMapPin size={11} className="flex-shrink-0" />
+                                        <span className="flex-shrink-0 inline-flex items-center"><IconMapPin size={11} /></span>
                                         {inst.neighborhood || extrairBairro(inst.location)}
                                     </div>
                                     <div className="text-[11px] text-slate-400 truncate mt-0.5">{inst.location}</div>
@@ -518,10 +518,11 @@ export default function InstituicoesScreen({
                   {selected.type}
                 </span>
                             </div>
-                            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${(instStatusCfg[selected.status] || instStatusCfg["ativa"]).badge}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${(instStatusCfg[selected.status] || instStatusCfg["ativa"]).dot}`} />
-                                {(instStatusCfg[selected.status] || instStatusCfg["ativa"]).label}
-              </span>
+                            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${(instStatusCfg[(selected.status || "ativa") as InstStatus] || instStatusCfg["ativa"]).badge}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${(instStatusCfg[(selected.status || "ativa") as InstStatus] || instStatusCfg["ativa"]).dot}`} />
+                                {(instStatusCfg[(selected.status || "ativa") as InstStatus] || instStatusCfg["ativa"]).label}
+                            </span>
+
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -540,7 +541,7 @@ export default function InstituicoesScreen({
                                 <div className="flex flex-wrap gap-2">
                                     {Object.entries(selected.minStock).map(([tipo, qtd]) => (
                                         <span key={tipo} className="px-2 py-1 rounded bg-white border border-slate-200 text-[11.5px] font-mono text-slate-700">
-                      <strong>{tipo}:</strong> {qtd} un.
+                      <strong>{tipo}:</strong> {String(qtd)} un.
                     </span>
                                     ))}
                                 </div>
