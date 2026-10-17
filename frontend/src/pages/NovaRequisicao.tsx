@@ -94,7 +94,9 @@ export default function NovaRequisicaoScreen({
             {/* Alerta de validação se submeter sem campos obrigatórios (Cenário Negativo BDD) */}
             {submitted && !canSave && (
                 <div className="bg-[#FFF0F2] border border-[#C8102E]/30 rounded-lg p-3.5 flex items-center gap-2.5 text-[#C8102E] text-[12.5px] font-medium">
-                  <IconAlertTriangle size={16} className="flex-shrink-0" />
+                  <span className="flex-shrink-0 inline-flex items-center">
+                    <IconAlertTriangle size={16} />
+                  </span>
                   <span>Por favor, informe a instituição, o tipo sanguíneo e o volume desejado antes de emitir.</span>
                 </div>
             )}

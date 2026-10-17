@@ -187,7 +187,7 @@ export function todayISO(): string {
 
 export function nextLotCode(existing: Lote[]): string {
   const year = new Date().getFullYear();
-  const nums = existing.map((l) => parseInt(l.lotCode.split("-")[2] ?? "0")).filter(Boolean);
+  const nums = existing.map((l) => parseInt((l.lotCode || "").split("-")[2] ?? "0")).filter(Boolean);
   const next = nums.length ? Math.max(...nums) + 1 : 891;
   return `LT-${year}-${String(next).padStart(4, "0")}`;
 }

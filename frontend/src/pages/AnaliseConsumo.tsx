@@ -233,9 +233,9 @@ export default function AnaliseConsumoScreen() {
 
                 {/* Métrica Concorrente da Infraestrutura */}
                 <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm text-[12px]">
-          <span className="text-slate-400 font-semibold uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-            <IconClock size={13} className="text-slate-400" /> Motor Concorrente:
-          </span>
+                    <span className="text-slate-400 inline-flex items-center gap-1.5">
+                        <IconClock size={13} /> Motor Concorrente:
+                    </span>
 
                     <div className="flex items-center gap-2">
                         <label className="text-slate-500">Threads:</label>

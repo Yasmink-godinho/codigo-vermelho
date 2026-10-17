@@ -407,9 +407,9 @@ export default function App() {
         {currentUser ? (
             <Route element={<MainLayout currentUser={currentUser} onLogout={handleLogout} />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardScreen institutions={institutions} lotes={lotes} />} />
+              <Route path="/dashboard" element={<DashboardScreen />} />
               <Route path="/alertas" element={<AlertasScreen filter={alertFilter} setFilter={setAlertFilter} />} />
-              <Route path="/fefo" element={<FefoScreen lotes={lotes} institutions={institutions} />} />
+              <Route path="/fefo" element={<FefoScreen />} />
 
               <Route
                   path="/requisicoes"
