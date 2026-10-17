@@ -41,7 +41,7 @@ export interface RequisicaoAPI {
   createdAt?: number | string;
 }
 
-// Mesmo formato do TransferenciaResponse do backend (docs/RESULTADO_ROTA.md, secao 4)
+// Formato compatível com TransferenciaResponse do backend
 export interface TransferenciaAPI {
   id: number | string;
   codigo?: string;
@@ -124,10 +124,7 @@ export function formatarDataISO(dataStr: any): string {
     const partes = s.split("/");
     if (partes.length === 3) {
       if (partes[2].length === 4) {
-        const ano = partes[2];
-        const mes = partes[0].padStart(2, "0");
-        const dia = partes[1].padStart(2, "0");
-        return `${ano}-${mes}-${dia}`;
+        return `${partes[2]}-${partes[0].padStart(2, "0")}-${partes[1].padStart(2, "0")}`;
       }
       if (partes[0].length === 4) {
         return `${partes[0]}-${partes[1].padStart(2, "0")}-${partes[2].padStart(2, "0")}`;
