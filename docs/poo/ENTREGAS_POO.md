@@ -40,7 +40,7 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 |---|---|---|
 | Histórias implementadas (POST-IT) | Descrição das ≥2 histórias implementadas nesta entrega | [Acessar](HISTORIAS_IMPLEMENTADAS_ENTREGA_3.md) |
 | Issue/bug tracker | Print atualizado do bug tracker | [Acessar](#) |
-| Screencast — sistema rodando | Vídeo com as novas histórias em funcionamento | [Acessar]((https://youtu.be/GICQzfaGCj0) |
+| Screencast — sistema rodando | Vídeo com as novas histórias em funcionamento | [Acessar](https://youtu.be/GICQzfaGCj0) |
 | Screencast — explicação do código | Vídeo explicando o código das novas histórias | [Acessar](https://youtu.be/Et2vIwk9Q0s) |
 
 ---
