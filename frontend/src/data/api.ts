@@ -388,6 +388,7 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
     quantity: qtd,
     dataColeta: dataColetaFinal,
     collectionDate: dataColetaFinal,
+    validade: validadeFinal,
     dataValidade: validadeFinal,
     expiryDate: validadeFinal,
   };

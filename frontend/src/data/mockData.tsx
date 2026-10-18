@@ -168,21 +168,36 @@ export const COMPONENT_VALIDITY_DAYS: Record<LoteComponent, number> = {
   "Crioprecipitado": 365,
 };
 
+// Funções de data corrigidas para usar o fuso local e evitar desvio UTC
+export function todayISO(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  if (!dateStr) return todayISO();
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + Number(days));
+
+  const resYear = date.getFullYear();
+  const resMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const resDay = String(date.getDate()).padStart(2, "0");
+  return `${resYear}-${resMonth}-${resDay}`;
 }
 
 export function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr + "T00:00:00");
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-}
+  if (!dateStr) return 0;
+  const [ty, tm, td] = todayISO().split("-").map(Number);
+  const [dy, dm, dd] = dateStr.split("-").map(Number);
 
-export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  const startUtc = Date.UTC(ty, tm - 1, td);
+  const endUtc = Date.UTC(dy, dm - 1, dd);
+
+  return Math.round((endUtc - startUtc) / 86400000);
 }
 
 export function nextLotCode(existing: Lote[]): string {
