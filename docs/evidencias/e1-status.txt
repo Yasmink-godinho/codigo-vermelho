@@ -1,0 +1,26 @@
+﻿Captured at: 2026-10-21 11:22:26 -03:00
+--- docker compose ps ---
+NAME                    IMAGE                 COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+codigo-vermelho-api-1   codigo-vermelho-api   "java -jar app.jar"      api       27 minutes ago   Up 10 minutes (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+codigo-vermelho-db-1    postgres:16-alpine    "docker-entrypoint.s…"   db        27 minutes ago   Up 10 minutes (healthy)   5432/tcp
+--- readiness ---
+{
+    "status":  "UP"
+}
+--- institutions ---
+{
+    "value":  [
+                  {
+                      "id":  1,
+                      "name":  "Instituicao Teste E1",
+                      "type":  "Hemocentro",
+                      "location":  "Rua de teste, Recife",
+                      "latitude":  -8.05,
+                      "longitude":  -34.9,
+                      "minStock":  {
+
+                                   }
+                  }
+              ],
+    "Count":  1
+}

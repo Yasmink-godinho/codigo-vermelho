@@ -1,0 +1,28 @@
+﻿**********************
+Início da transcrição do Windows PowerShell
+
+Transcrição iniciada, o arquivo de saída é docs\evidencias\e1-persistencia.txt
+
+{
+    "status":  "UP"
+}
+{
+    "value":  [
+                  {
+                      "id":  1,
+                      "name":  "Instituicao Teste E1",
+                      "type":  "Hemocentro",
+                      "location":  "Rua de teste, Recife",
+                      "latitude":  -8.05,
+                      "longitude":  -34.9,
+                      "minStock":  {
+
+                                   }
+                  }
+              ],
+    "Count":  1
+}
+**********************
+Fim da transcrição do Windows PowerShell
+Hora de término: 20261021111505
+**********************

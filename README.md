@@ -291,6 +291,26 @@ codigo-vermelho/
 
 ---
 
+## 🐳 Desafio de SO — E1 Container
+
+A execução local com Docker Compose inicia a API e o PostgreSQL. O banco usa um volume nomeado para manter os dados entre reinicializações dos containers.
+
+- [Como executar com Docker Compose](docs/COMO_EXECUTAR.md)
+- [Evidências e verificação de persistência do E1](docs/evidencias/EVIDENCIAS.md)
+- [Transcrição da consulta após reinício](docs/evidencias/e1-persistencia.txt)
+
+## 🤖 Uso de IA
+
+O GitHub Copilot foi usado como apoio durante a implementação do E1 para elaborar a configuração do Docker Compose, parametrizar a conexão da aplicação com o PostgreSQL, configurar healthchecks e investigar o erro `./mvnw: not found` no build Docker iniciado no Windows. As sugestões foram revisadas e validadas pelo grupo; a suíte existente passou e o ambiente foi iniciado localmente.
+
+Prompts principais usados, resumidos:
+
+- “Como configurar API e PostgreSQL no Docker Compose com volume persistente, healthcheck e dependência da API em relação ao banco?”
+- “Investigue o erro `/bin/sh: ./mvnw: not found` durante o build Docker iniciado no Windows.”
+- “Como comprovar que os dados do PostgreSQL persistem depois de reiniciar os serviços?”
+
+---
+
  
 ## 👥 Equipe Código Vermelho
  
