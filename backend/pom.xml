@@ -42,6 +42,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -55,15 +59,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Banco em memoria usado SOMENTE nos testes automatizados (contextLoads, etc).
-             Evita que o pipeline de CI precise de um PostgreSQL real rodando.
-             A configuracao que ativa o H2 nos testes fica em
-             src/test/resources/application.properties. -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <!-- H2 is the local default database and is also used by automated tests. -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
