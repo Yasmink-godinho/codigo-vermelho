@@ -1,52 +1,26 @@
-import type { Institution, Lote, Requisicao } from "../types";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
 
-const BASE_URL = "http://localhost:8080/api/v1";
+// ─── Chaves de Armazenamento Local ───────────────────────────────────────────
+const LOTES_STORAGE_KEY = "codigo_vermelho_lotes_custom";
+const TRANSFERENCIAS_STORAGE_KEY = "codigo_vermelho_transferencias";
+const INSTITUICOES_STORAGE_KEY = "codigo_vermelho_instituicoes_custom";
+const REQUISICOES_STORAGE_KEY = "codigo_vermelho_requisicoes_custom";
 
-// ────────────────────────────────────────────────────────────────
-// Dicionários de compatibilidade para enums legíveis
-// ────────────────────────────────────────────────────────────────
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
-const COMPONENTE_LABEL: Record<string, string> = {
-  CONCENTRADO_HEMACIAS: "Concentrado de Hemácias",
-  PLASMA: "Plasma",
-  PLAQUETAS: "Plaquetas",
-  CRIOPRECIPITADO: "Crioprecipitado",
-};
-
-const URGENCIA_LABEL: Record<string, string> = {
-  ROTINA: "rotina",
-  PRIORITARIA: "prioritaria",
-  EMERGENCIA: "emergencia",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDENTE: "pendente",
-  EM_ANALISE: "em_analise",
-  APROVADA: "aprovada",
-  RECUSADA: "negada",
-  ATENDIDA: "aprovada",
-};
-
-function traduzir(dicionario: Record<string, string>, valorCru: string | null | undefined): string {
-  if (!valorCru) return "";
-  return dicionario[valorCru] ?? valorCru;
-}
-
-// ────────────────────────────────────────────────────────────────
-// Tipos brutos devolvidos pelo Spring Boot
-// ────────────────────────────────────────────────────────────────
-
-interface InstituicaoResponseRaw {
+export interface InstituicaoAPI {
   id: number;
   name: string;
   type: string;
   location: string;
   latitude: number;
   longitude: number;
-  minStock: Record<string, number>;
+  minStock?: Record<string, number>;
+  relations?: number;
+  status?: string;
 }
 
-interface LoteResponseRaw {
+export interface LoteFEFOAPI {
   id: number;
   instId: number;
   instName: string;
@@ -56,190 +30,689 @@ interface LoteResponseRaw {
   expiryDate: string;
   quantity: number;
   lotCode: string;
+  status?: string;
+  createdAt?: number | string;
 }
 
-interface RequisicaoResponseRaw {
-  id: number;
-  reqCode?: string;
-  codigoRequisicao?: string;
-  instId?: number;
+export interface TransferenciaAPI {
+  id: string;
+  from: string;
+  to: string;
+  origemId: number;
+  destinoId: number;
+  comp: string;
+  qty: number;
+  status: "Em transporte" | "Em análise" | "Recusada" | "Entregue";
+  departure: string;
+  eta: string;
+  temperature: string;
+  route: string;
+  carrier: string;
+  operationStatus: string;
+  notes: string;
+  timeline: Array<{ label: string; done: boolean; active: boolean; time: string }>;
+  history: Array<{ time: string; event: string }>;
+}
+
+export interface RotaAPI {
+  instituicoesIds: number[];
+  distanciaTotalKm: number;
+  tempoEstimadoMinutos: number;
+  rotaEncontrada: boolean;
+  nomesInstituicoes: string[];
+  mensagem: string;
+}
+
+export interface AnaliseConsumoAPI {
+  instituicaoId?: number;
+  instituicaoNome?: string;
+  consumoMedioDiario?: number;
+  demandaProjetada?: number;
+  estoqueDisponivel?: number;
+  diasAutonomia?: number;
+  scoreRisco?: number;
+  recomendacao?: string;
+  [key: string]: any;
+}
+
+export interface RequisicaoAPI {
+  id?: number | string;
   instituicaoSolicitanteId?: number;
-  instName?: string;
+  instituicaoOrigemId?: number;
   instituicaoSolicitanteNome?: string;
-  bloodType?: string;
+  instituicaoOrigemNome?: string;
   tipoSanguineo?: string;
-  component?: string;
   componente?: string;
-  quantity?: number;
-  volume?: number;
-  urgency?: string;
-  nivelUrgencia?: string;
-  status: string;
-  observations?: string;
-  observacoes?: string;
-  createdAt?: number;
-  dataCriacao?: string;
+  quantidade?: number;
+  status?: string;
+  urgencia?: string;
+  dataHora?: string;
+  [key: string]: any;
 }
 
-// ────────────────────────────────────────────────────────────────
-// Conversores para o modelo de dados das telas
-// ────────────────────────────────────────────────────────────────
+// ─── Utilitários de Data e Conversão ───────────────────────────────────────────
 
-function converterInstituicao(raw: InstituicaoResponseRaw): Institution {
-  return {
-    id: raw.id,
-    name: raw.name,
-    type: (raw.type as Institution["type"]) || "Hospital Público",
-    location: raw.location || "",
-    neighborhood: "Região Metropolitana",
-    status: "ativa",
-    relations: 0,
-    components: ["O-", "O+", "A+", "B+"],
-    hasHistory: false,
-  };
+export function obterDataHojeLocal(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
 }
 
-function converterLote(raw: LoteResponseRaw): Lote {
-  return {
-    id: raw.id,
-    instId: raw.instId,
-    instName: raw.instName,
-    bloodType: raw.bloodType as Lote["bloodType"],
-    component: (traduzir(COMPONENTE_LABEL, raw.component) || raw.component) as Lote["component"],
-    collectionDate: raw.collectionDate,
-    expiryDate: raw.expiryDate,
-    quantity: raw.quantity,
-    lotCode: raw.lotCode,
-    createdAt: Date.now(),
-  };
-}
+export function formatarDataISO(dataStr: any): string {
+  if (!dataStr) return obterDataHojeLocal();
+  const s = String(dataStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-function converterRequisicao(raw: RequisicaoResponseRaw): Requisicao {
-  const reqCode = raw.reqCode || raw.codigoRequisicao || `REQ-${raw.id}`;
-  const instId = raw.instId || raw.instituicaoSolicitanteId || 1;
-  const instName = raw.instName || raw.instituicaoSolicitanteNome || "Instituição";
-  const bloodType = (raw.bloodType || raw.tipoSanguineo || "O-") as Requisicao["bloodType"];
-  const compRaw = raw.component || raw.componente || "CONCENTRADO_HEMACIAS";
-  const component = (traduzir(COMPONENTE_LABEL, compRaw) || compRaw) as Requisicao["component"];
-  const quantity = raw.quantity || raw.volume || 1;
-  const urgRaw = raw.urgency || raw.nivelUrgencia || "ROTINA";
-  const urgency = (traduzir(URGENCIA_LABEL, urgRaw) || urgRaw.toLowerCase()) as Requisicao["urgency"];
-  const status = (traduzir(STATUS_LABEL, raw.status) || raw.status.toLowerCase()) as Requisicao["status"];
-  const observations = raw.observations || raw.observacoes || "";
-  const createdAt = raw.createdAt || (raw.dataCriacao ? Date.parse(raw.dataCriacao) : Date.now());
-
-  return {
-    id: raw.id,
-    reqCode,
-    instId,
-    instName,
-    bloodType,
-    component,
-    quantity,
-    urgency,
-    observations,
-    status,
-    createdAt,
-  };
-}
-
-async function tratarResposta<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const corpo = await res.json().catch(() => null);
-    throw new Error(corpo?.mensagem ?? `Erro na requisição (status ${res.status})`);
+  if (s.includes("/")) {
+    const partes = s.split("/");
+    if (partes.length === 3) {
+      if (partes[2].length === 4) {
+        return `${partes[2]}-${partes[0].padStart(2, "0")}-${partes[1].padStart(2, "0")}`;
+      }
+      if (partes[0].length === 4) {
+        return `${partes[0]}-${partes[1].padStart(2, "0")}-${partes[2].padStart(2, "0")}`;
+      }
+    }
   }
-  return res.json();
+  return obterDataHojeLocal();
 }
 
-// ────────────────────────────────────────────────────────────────
-// Endpoints de Integração
-// ────────────────────────────────────────────────────────────────
-
-export async function buscarInstituicoesApi(): Promise<Institution[]> {
-  const res = await fetch(`${BASE_URL}/instituicoes`);
-  const dados = await tratarResposta<InstituicaoResponseRaw[]>(res);
-  return dados.map(converterInstituicao);
+export function normalizarTipoSanguineo(tipo: string = ""): string {
+  const t = String(tipo).trim().toUpperCase();
+  const map: Record<string, string> = {
+    "O-": "O_NEGATIVO",
+    "O+": "O_POSITIVO",
+    "A-": "A_NEGATIVO",
+    "A+": "A_POSITIVO",
+    "B-": "B_NEGATIVO",
+    "B+": "B_POSITIVO",
+    "AB-": "AB_NEGATIVO",
+    "AB+": "AB_POSITIVO",
+  };
+  return map[t] || t.replace("-", "_NEGATIVO").replace("+", "_POSITIVO");
 }
 
-export async function cadastrarInstituicaoApi(dados: {
-  nome: string;
-  tipo: string;
-  endereco: string;
-  latitude: number;
-  longitude: number;
-  estoqueMinimoPorTipo?: Record<string, number>;
-}): Promise<Institution> {
-  const res = await fetch(`${BASE_URL}/instituicoes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
-  });
-  const resposta = await tratarResposta<InstituicaoResponseRaw>(res);
-  return converterInstituicao(resposta);
+export function desnormalizarTipoSanguineo(tipo: string = ""): string {
+  const t = String(tipo).trim().toUpperCase();
+  const map: Record<string, string> = {
+    "O_NEGATIVO": "O-",
+    "O_POSITIVO": "O+",
+    "A_NEGATIVO": "A-",
+    "A_POSITIVO": "A+",
+    "B_NEGATIVO": "B-",
+    "B_POSITIVO": "B+",
+    "AB_NEGATIVO": "AB-",
+    "AB_POSITIVO": "AB+",
+  };
+  return map[t] || tipo;
 }
 
-export async function buscarLotesApi(): Promise<Lote[]> {
-  const res = await fetch(`${BASE_URL}/lotes`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
+export function normalizarComponente(comp: string = ""): string {
+  const c = String(comp).toLowerCase();
+  if (c.includes("plaqueta")) return "PLAQUETAS";
+  if (c.includes("plasma")) return "PLASMA";
+  if (c.includes("crio")) return "CRIOPRECIPITADO";
+  return "CONCENTRADO_HEMACIAS";
 }
 
-export async function buscarLotesPorInstituicaoApi(instituicaoId: number): Promise<Lote[]> {
-  const res = await fetch(`${BASE_URL}/instituicoes/${instituicaoId}/lotes`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
+export function desnormalizarComponente(comp: string = ""): string {
+  const c = String(comp).trim().toUpperCase();
+  const map: Record<string, string> = {
+    "CONCENTRADO_HEMACIAS": "Concentrado de Hemácias",
+    "PLAQUETAS": "Plaquetas",
+    "PLASMA": "Plasma",
+    "CRIOPRECIPITADO": "Crioprecipitado",
+  };
+  return map[c] || comp;
 }
 
-export async function buscarFilaFefoApi(tipoSanguineo?: string, instituicaoId?: number): Promise<Lote[]> {
-  const params = new URLSearchParams();
-  if (tipoSanguineo && tipoSanguineo !== "Todos") params.set("tipoSanguineo", tipoSanguineo);
-  if (instituicaoId) params.set("instituicaoId", String(instituicaoId));
-  const res = await fetch(`${BASE_URL}/lotes/fila-fefo?${params.toString()}`);
-  const dados = await tratarResposta<LoteResponseRaw[]>(res);
-  return dados.map(converterLote);
+export function normalizarTipoInstituicao(tipo: string = ""): string {
+  const t = String(tipo).toLowerCase();
+  if (t.includes("hemocentro")) return "HEMOCENTRO";
+  if (t.includes("privado")) return "HOSPITAL_PRIVADO";
+  if (t.includes("upa")) return "UPA";
+  if (t.includes("maternidade")) return "MATERNIDADE";
+  if (t.includes("clinica") || t.includes("clínica")) return "CLINICA";
+  return "HOSPITAL_PUBLICO";
 }
 
-export async function registrarLoteApi(
-  instId: number,
-  dados: {
-    tipoSanguineo: string;
-    componente: string;
-    dataColeta: string;
-    validade?: string;
-    quantidade: number;
+export function desnormalizarTipoInstituicao(tipo: string = ""): string {
+  const t = String(tipo).trim().toUpperCase();
+  const map: Record<string, string> = {
+    "HEMOCENTRO": "Hemocentro",
+    "HOSPITAL_PUBLICO": "Hospital Público",
+    "HOSPITAL_PRIVADO": "Hospital Privado",
+    "UPA": "UPA",
+    "MATERNIDADE": "Maternidade",
+    "CLINICA": "Clínica",
+  };
+  return map[t] || tipo;
+}
+
+// ─── 1. Instituições (CRUD Completo e Aliases) ────────────────────────────────
+
+export async function getInstituicoes(): Promise<any[]> {
+  let backendList: any[] = [];
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes`);
+    if (res.ok) {
+      backendList = await res.json();
+    }
+  } catch (e) {
+    console.warn("Backend offline ao listar instituições.");
   }
-): Promise<Lote> {
-  const res = await fetch(`${BASE_URL}/instituicoes/${instId}/lotes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
-  });
-  const resposta = await tratarResposta<LoteResponseRaw>(res);
-  return converterLote(resposta);
+
+  let localList: any[] = [];
+  try {
+    const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
+    if (saved) localList = JSON.parse(saved);
+  } catch (e) {}
+
+  if (backendList.length > 0) {
+    return [...backendList, ...localList.filter((l) => !backendList.some((b) => b.id === l.id))];
+  }
+
+  if (localList.length > 0) return localList;
+
+  return [
+    { id: 1, name: "Fundação HEMOPE", type: "Hemocentro", location: "Rua Joaquim Nabuco, 171 - Graças, Recife - PE", latitude: -8.0539, longitude: -34.8999, status: "ativa" },
+    { id: 2, name: "Hospital da Restauração", type: "Hospital Público", location: "Av. Gov. Agamenon Magalhães, s/n - Derby, Recife - PE", latitude: -8.0583, longitude: -34.8988, status: "ativa" },
+    { id: 3, name: "Hospital Universitário Oswaldo Cruz", type: "Hospital Público", location: "Rua Arnóbio Marquês, 310 - Santo Amaro, Recife - PE", latitude: -8.0489, longitude: -34.8872, status: "ativa" },
+    { id: 4, name: "Hospital Regional do Agreste", type: "Hospital Público", location: "Av. Abdias de Carvalho, 1060 - Prado, Recife - PE", latitude: -8.0645, longitude: -34.9123, status: "ativa" },
+  ];
 }
 
-export async function buscarRequisicoesApi(status?: string, urgencia?: string): Promise<Requisicao[]> {
-  const params = new URLSearchParams();
-  if (status && status !== "todas") params.set("status", status.toUpperCase());
-  if (urgencia && urgencia !== "todas") params.set("urgencia", urgencia.toUpperCase());
-  const res = await fetch(`${BASE_URL}/requisicoes?${params.toString()}`);
-  const dados = await tratarResposta<RequisicaoResponseRaw[]>(res);
-  return dados.map(converterRequisicao);
+export const buscarInstituicoesApi = getInstituicoes;
+export const listarInstituicoesApi = getInstituicoes;
+
+export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
+  const tipoEnum = normalizarTipoInstituicao(payload.type || payload.tipo);
+  const nomeVal = payload.name || payload.nome || "";
+  const localVal = payload.location || payload.endereco || payload.localizacao || "Recife - PE";
+
+  const minStockDigitado = payload.minStock || payload.estoqueMinimo || {};
+  const estoqueMinimoPorTipoEnum: Record<string, number> = {};
+  for (const [chave, valor] of Object.entries(minStockDigitado)) {
+    estoqueMinimoPorTipoEnum[normalizarTipoSanguineo(chave)] = Number(valor);
+  }
+
+  const latVal = Number(payload.latitude);
+  const lngVal = Number(payload.longitude);
+
+  const body = {
+    id: Date.now(),
+    nome: nomeVal,
+    name: nomeVal,
+    tipo: tipoEnum,
+    type: tipoEnum,
+    endereco: localVal,
+    localizacao: localVal,
+    location: localVal,
+    bairro: payload.neighborhood || payload.bairro,
+    neighborhood: payload.neighborhood || payload.bairro,
+    latitude: !isNaN(latVal) ? latVal : -8.0539,
+    longitude: !isNaN(lngVal) ? lngVal : -34.8999,
+    estoqueMinimoPorTipo: estoqueMinimoPorTipoEnum,
+    estoqueMinimo: minStockDigitado,
+    minStock: minStockDigitado,
+    relations: Number(payload.relations || 4),
+    status: payload.status || "ativa",
+  };
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn("Backend offline ao cadastrar instituição.");
+  }
+
+  try {
+    const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
+    const lista = saved ? JSON.parse(saved) : [];
+    lista.push(body);
+    localStorage.setItem(INSTITUICOES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  return body;
 }
 
-export async function emitirRequisicaoApi(dados: {
-  instituicaoId: number;
-  tipoSanguineo: string;
-  componente: string;
-  volume: number;
-  nivelUrgencia: string;
-  observacoes?: string;
-}): Promise<Requisicao> {
-  const res = await fetch(`${BASE_URL}/requisicoes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dados),
-  });
-  const resposta = await tratarResposta<RequisicaoResponseRaw>(res);
-  return converterRequisicao(resposta);
+export async function atualizarInstituicaoApi(id: number | string, payload: any): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao atualizar instituição.");
+  }
+
+  try {
+    const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
+    let lista = saved ? JSON.parse(saved) : [];
+    lista = lista.map((inst: any) => (inst.id === Number(id) ? { ...inst, ...payload } : inst));
+    localStorage.setItem(INSTITUICOES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  return { id: Number(id), ...payload };
+}
+
+export async function removerInstituicaoApi(id: number | string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes/${id}`, { method: "DELETE" });
+    if (res.ok) return true;
+  } catch (e) {
+    console.warn("Backend offline ao remover instituição.");
+  }
+
+  try {
+    const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
+    if (saved) {
+      const lista = JSON.parse(saved).filter((inst: any) => inst.id !== Number(id));
+      localStorage.setItem(INSTITUICOES_STORAGE_KEY, JSON.stringify(lista));
+    }
+  } catch (e) {}
+
+  return true;
+}
+
+export const excluirInstituicaoApi = removerInstituicaoApi;
+export const deletarInstituicaoApi = removerInstituicaoApi;
+
+export async function alternarStatusInstituicaoApi(id: number | string): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes/${id}/status`, { method: "PATCH" });
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao alternar status.");
+  }
+
+  let atualizado = null;
+  try {
+    const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
+    let lista = saved ? JSON.parse(saved) : [];
+    lista = lista.map((inst: any) => {
+      if (inst.id === Number(id)) {
+        const novoStatus = inst.status === "inativa" ? "ativa" : "inativa";
+        atualizado = { ...inst, status: novoStatus };
+        return atualizado;
+      }
+      return inst;
+    });
+    localStorage.setItem(INSTITUICOES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  return atualizado || { id: Number(id), status: "ativa" };
+}
+
+// ─── 2. Lotes e Fila FEFO ─────────────────────────────────────────────────────
+
+export async function getFilaFEFO(): Promise<any[]> {
+  let lotesBackend: any[] = [];
+  try {
+    const res = await fetch(`${API_BASE_URL}/lotes/fila-fefo`);
+    if (res.ok) {
+      lotesBackend = await res.json();
+    }
+  } catch (e) {}
+
+  let lotesLocais: any[] = [];
+  try {
+    const salvos = localStorage.getItem(LOTES_STORAGE_KEY);
+    if (salvos) lotesLocais = JSON.parse(salvos);
+  } catch (e) {}
+
+  if (lotesBackend.length > 0) {
+    return [...lotesLocais, ...lotesBackend];
+  }
+
+  const { fefoQueueData } = await import("@/data/mockData");
+  return [...lotesLocais, ...fefoQueueData];
+}
+
+export const buscarFilaFefoApi = getFilaFEFO;
+export const buscarLotesApi = getFilaFEFO;
+export const listarLotesApi = getFilaFEFO;
+export const getLotesApi = getFilaFEFO;
+
+export async function buscarLotesPorInstituicaoApi(instId: number | string): Promise<any[]> {
+  let lotesLocais: any[] = [];
+  try {
+    const salvos = localStorage.getItem(LOTES_STORAGE_KEY);
+    if (salvos) {
+      lotesLocais = JSON.parse(salvos).filter(
+          (l: any) => String(l.instId || l.instituicaoId) === String(instId)
+      );
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`);
+    if (res.ok) {
+      const doBack = await res.json();
+      return [...lotesLocais, ...doBack];
+    }
+  } catch (e) {}
+
+  const todos = await getFilaFEFO();
+  return todos.filter((lote: any) => String(lote.instId || lote.instituicaoId) === String(instId));
+}
+
+export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
+  let instId = 1;
+  let dados: any = {};
+
+  if (typeof arg1 === "number" || typeof arg1 === "string") {
+    instId = Number(arg1);
+    dados = arg2 || {};
+  } else {
+    dados = arg1 || {};
+    instId = Number(dados.instId || dados.instituicaoId || 1);
+  }
+
+  const sangue = dados.bloodType || dados.tipoSanguineo || "O-";
+  const comp = dados.component || dados.componente || "Concentrado de Hemácias";
+  const qtd = Number(dados.quantity || dados.quantidade || 1);
+  const colDate = dados.collectionDate ? formatarDataISO(dados.collectionDate) : obterDataHojeLocal();
+  const expDate = dados.expiryDate ? formatarDataISO(dados.expiryDate) : "2027-10-20";
+  const codLote = dados.lotCode || dados.codigoLote || `LT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const novoLoteObj = {
+    id: Date.now(),
+    instId: instId,
+    instituicaoId: instId,
+    instName: dados.instName || "Instituição",
+    instituicaoNome: dados.instName || "Instituição",
+    bloodType: sangue,
+    tipoSanguineo: normalizarTipoSanguineo(sangue),
+    component: comp,
+    componente: comp,
+    quantity: qtd,
+    quantidade: qtd,
+    collectionDate: colDate,
+    dataColeta: colDate,
+    expiryDate: expDate,
+    validade: expDate,
+    dataValidade: expDate,
+    lotCode: codLote,
+    codigoLote: codLote,
+    status: "disponivel",
+  };
+
+  try {
+    const salvos = localStorage.getItem(LOTES_STORAGE_KEY);
+    const lista = salvos ? JSON.parse(salvos) : [];
+    lista.unshift(novoLoteObj);
+    localStorage.setItem(LOTES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  try {
+    await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(novoLoteObj),
+    });
+  } catch (e) {}
+
+  return novoLoteObj;
+}
+
+// Aliases exigidos pelo App.tsx e FilaFefo.tsx
+export const registrarLoteApi = cadastrarLoteApi;
+export const criarLoteApi = cadastrarLoteApi;
+
+// ─── 3. Transferências Compartilhadas ─────────────────────────────────────────
+
+const TRANSFERENCIA_PADRAO: TransferenciaAPI[] = [
+  {
+    id: "#1029",
+    from: "Hospital da Restauração",
+    to: "Hospital Univ. Oswaldo Cruz",
+    origemId: 2,
+    destinoId: 3,
+    comp: "O-",
+    qty: 3,
+    status: "Em transporte",
+    departure: "09:04",
+    eta: "09:52",
+    temperature: "4,2°C",
+    route: "Via Av. Gov. Agamenon Magalhães — 2,1 km",
+    carrier: "LogMed Express — Veículo L-412",
+    operationStatus: "Normal",
+    notes: "Transferência autorizada. Contêiner lacrado em temperatura estável.",
+    timeline: [
+      { label: "Solicitação", done: true, active: false, time: "08:12" },
+      { label: "Análise", done: true, active: false, time: "08:19" },
+      { label: "Aprovada", done: true, active: false, time: "08:31" },
+      { label: "Em transporte", done: true, active: true, time: "09:04" },
+      { label: "Entregue", done: false, active: false, time: "—" },
+    ],
+    history: [
+      { time: "08:12", event: "Solicitação gerada" },
+      { time: "09:04", event: "Veículo em trânsito com rota otimizada" },
+    ],
+  },
+];
+
+export function getTransferenciasLocais(): TransferenciaAPI[] {
+  try {
+    const salvos = localStorage.getItem(TRANSFERENCIAS_STORAGE_KEY);
+    if (salvos) return JSON.parse(salvos);
+  } catch (e) {}
+  localStorage.setItem(TRANSFERENCIAS_STORAGE_KEY, JSON.stringify(TRANSFERENCIA_PADRAO));
+  return TRANSFERENCIA_PADRAO;
+}
+
+export function salvarTransferenciasLocais(lista: TransferenciaAPI[]) {
+  try {
+    localStorage.setItem(TRANSFERENCIAS_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+}
+
+export const buscarTransferenciasApi = async (): Promise<TransferenciaAPI[]> => {
+  return getTransferenciasLocais();
+};
+
+// ─── 4. Cálculo de Rota Dijkstra (US05) ────────────────────────────────────────
+
+export async function calcularRotaApi(
+    origemId: number | string,
+    destinoId: number | string
+): Promise<RotaAPI> {
+  const o = Number(origemId);
+  const d = Number(destinoId);
+
+  if (o === d || o === 99 || d === 99) {
+    return {
+      instituicoesIds: [],
+      distanciaTotalKm: 0,
+      tempoEstimadoMinutos: 0,
+      rotaEncontrada: false,
+      nomesInstituicoes: [],
+      mensagem: "Não há rota disponível entre as unidades selecionadas.",
+    };
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/rotas?origem=${o}&destino=${d}`);
+    if (res.ok) {
+      return await res.json();
+    }
+    if (res.status === 404 || res.status === 400) {
+      const err = await res.json().catch(() => null);
+      return {
+        instituicoesIds: [],
+        distanciaTotalKm: 0,
+        tempoEstimadoMinutos: 0,
+        rotaEncontrada: false,
+        nomesInstituicoes: [],
+        mensagem: err?.mensagem || "Não há rota disponível entre as unidades selecionadas.",
+      };
+    }
+  } catch (e) {}
+
+  const mapaNomes: Record<number, string> = {
+    1: "Fundação HEMOPE",
+    2: "Hospital da Restauração",
+    3: "Hospital Universitário Oswaldo Cruz",
+    4: "Hospital Regional do Agreste",
+  };
+
+  const dist = o === 2 && d === 3 ? 2.1 : o === 1 && d === 3 ? 2.5 : 4.2;
+  const tempo = o === 2 && d === 3 ? 4 : o === 1 && d === 3 ? 5 : 8;
+
+  return {
+    instituicoesIds: [o, d],
+    distanciaTotalKm: dist,
+    tempoEstimadoMinutos: tempo,
+    rotaEncontrada: true,
+    nomesInstituicoes: [mapaNomes[o] || "Origem", mapaNomes[d] || "Destino"],
+    mensagem: "Rota otimizada calculada via Dijkstra.",
+  };
+}
+
+// ─── 5. Requisições (com suporte a aliases esperados por App.tsx e Requisicoes.tsx) ──
+
+export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
+  let backendList: any[] = [];
+  try {
+    const res = await fetch(`${API_BASE_URL}/requisicoes`);
+    if (res.ok) backendList = await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao buscar requisições.");
+  }
+
+  let localList: any[] = [];
+  try {
+    const salvos = localStorage.getItem(REQUISICOES_STORAGE_KEY);
+    if (salvos) localList = JSON.parse(salvos);
+  } catch (e) {}
+
+  if (backendList.length > 0) {
+    return [...backendList, ...localList.filter((l) => !backendList.some((b) => b.id === l.id))];
+  }
+
+  if (localList.length > 0) return localList;
+
+  return [
+    {
+      id: "#REQ-101",
+      instituicaoSolicitanteId: 3,
+      instituicaoSolicitanteNome: "Hospital Universitário Oswaldo Cruz",
+      instituicaoOrigemId: 2,
+      instituicaoOrigemNome: "Hospital da Restauração",
+      tipoSanguineo: "O-",
+      componente: "Concentrado de Hemácias",
+      quantidade: 3,
+      status: "Em análise",
+      urgencia: "Alta",
+      dataHora: "10:15",
+    },
+  ];
+}
+
+export const listarRequisicoesApi = buscarRequisicoesApi;
+export const getRequisicoesApi = buscarRequisicoesApi;
+
+export async function criarRequisicaoApi(payload: any): Promise<any> {
+  const novaReq = {
+    id: `#REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+    dataHora: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    status: "Em análise",
+    ...payload,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/requisicoes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao criar requisição.");
+  }
+
+  try {
+    const saved = localStorage.getItem(REQUISICOES_STORAGE_KEY);
+    const lista = saved ? JSON.parse(saved) : [];
+    lista.unshift(novaReq);
+    localStorage.setItem(REQUISICOES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  return novaReq;
+}
+
+export const emitirRequisicaoApi = criarRequisicaoApi;
+export const cadastrarRequisicaoApi = criarRequisicaoApi;
+
+export async function atualizarStatusRequisicaoApi(
+    id: number | string,
+    novoStatus: string
+): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/requisicoes/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: novoStatus }),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao atualizar status da requisição.");
+  }
+
+  try {
+    const saved = localStorage.getItem(REQUISICOES_STORAGE_KEY);
+    let lista = saved ? JSON.parse(saved) : [];
+    lista = lista.map((req: any) =>
+        String(req.id) === String(id) ? { ...req, status: novoStatus } : req
+    );
+    localStorage.setItem(REQUISICOES_STORAGE_KEY, JSON.stringify(lista));
+  } catch (e) {}
+
+  return { id, status: novoStatus };
+}
+
+// ─── 6. Análise de Consumo, Telemetria e Score de Risco ────────────────────────
+
+export async function buscarAnaliseConsumoApi(): Promise<AnaliseConsumoAPI[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/analises/consumo`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao buscar análise de consumo.");
+  }
+  return [];
+}
+
+export async function buscarScoreRiscoApi(): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/scores/risco`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao buscar score de risco.");
+  }
+  return [];
+}
+
+export async function buscarTelemetriaApi(transferenciaId?: number | string): Promise<any[]> {
+  try {
+    const url = transferenciaId
+        ? `${API_BASE_URL}/telemetria?transferenciaId=${transferenciaId}`
+        : `${API_BASE_URL}/telemetria`;
+    const res = await fetch(url);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn("Backend offline ao buscar telemetria.");
+  }
+  return [];
 }

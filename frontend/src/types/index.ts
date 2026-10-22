@@ -39,15 +39,24 @@ export type LoteComponent = "Concentrado de Hemácias" | "Plasma" | "Plaquetas" 
 
 export interface Lote {
   id: number;
-  instId: number;
-  instName: string;
+  lotCode?: string;
+  codigoLote?: string;
   bloodType: string;
-  component: LoteComponent;
-  collectionDate: string; // YYYY-MM-DD
-  expiryDate: string;     // YYYY-MM-DD
+  tipoSanguineo?: string;
+  component: string;
+  componente?: string;
   quantity: number;
-  lotCode: string;
-  createdAt: number;
+  quantidade?: number;
+  collectionDate: string;
+  dataColeta?: string;
+  expiryDate: string;
+  dataValidade?: string;
+  instId?: number;
+  instituicaoId?: number;
+  instName?: string;
+  instituicaoNome?: string;
+  status?: string;
+  createdAt?: number | string;
 }
 
 // ─── Requisições ─────────────────────────────────────────────────────────────
@@ -77,13 +86,16 @@ export type InstType = "Hospital Público" | "Hospital Privado" | "UPA" | "Hemoc
 export interface Institution {
   id: number;
   name: string;
-  type: InstType;
+  type: string;
   location: string;
-  neighborhood: string;
-  status: InstStatus;
-  relations: number;
-  components: string[];
-  hasHistory: boolean; // has transfers/alerts/operations — blocks hard delete
+  neighborhood?: string;
+  status?: string;
+  relations?: number;
+  components?: string[];
+  hasHistory?: boolean;
+  latitude?: number;
+  longitude?: number;
+  minStock?: Record<string, number>;
 }
 
 export type ModalMode = "view" | "edit" | "deactivate" | "delete" | null;

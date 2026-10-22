@@ -27,8 +27,8 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 
 | Item | Descrição | Link |
 |---|---|---|
-| Histórias implementadas (POST-IT) | Descrição das ≥2 histórias implementadas nesta entrega | [Acessar](#) |
-| Issue/bug tracker | Print do uso do bug tracker do GitHub | [Acessar](./img/issue_bug_1.jpeg) |
+| Histórias implementadas (POST-IT) | Descrição das ≥2 histórias implementadas nesta entrega | [Acessar](HISTORIAS_IMPLEMENTADAS_ENTREGA_2.md) |
+| Issue/bug tracker | Print do uso do bug tracker do GitHub | [Acessar](../img/issue_bug_1.jpeg) |
 | Screencast — sistema rodando | Vídeo do app Spring Boot em funcionamento | [Acessar](https://youtu.be/IomFg6woCXM) |
 | Screencast — explicação do código | Vídeo explicando o código das histórias implementadas | [Acessar](https://youtu.be/wuZ8JeXvS_E) |
 
@@ -38,10 +38,10 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 
 | Item | Descrição | Link |
 |---|---|---|
-| Histórias implementadas (POST-IT) | Descrição das +2 novas histórias implementadas | [Acessar](#) |
-| Issue/bug tracker | Print atualizado do bug tracker | [Acessar](#) |
-| Screencast — sistema rodando | Vídeo com as novas histórias em funcionamento | [Acessar](#) |
-| Screencast — explicação do código | Vídeo explicando o código das novas histórias | [Acessar](#) |
+| Histórias implementadas (POST-IT) | Descrição das ≥2 histórias implementadas nesta entrega | [Acessar](HISTORIAS_IMPLEMENTADAS_ENTREGA_3.md) |
+| Issue/bug tracker | Print atualizado do bug tracker | [Acessar](../img/issue_bug_atualizado_entrega3_poo.png) |
+| Screencast — sistema rodando | Vídeo com as novas histórias em funcionamento | [Acessar](https://youtu.be/GICQzfaGCj0) |
+| Screencast — explicação do código | Vídeo explicando o código das novas histórias | [Acessar](https://youtu.be/Et2vIwk9Q0s) |
 
 ---
 
