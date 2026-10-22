@@ -34,3 +34,5 @@ build/
 
 # Variaveis de ambiente locais
 .env
+!.env.example
+!**/.env.example
