@@ -1,5 +1,7 @@
-name: Build - Código Vermelho
+name: CI/CD - Código Vermelho
 
+# Em Pull Request: roda so os testes (gate — PR com teste vermelho nao pode mergear).
+# Em push na main (apos o merge): testes -> imagem -> deploy, nessa ordem.
 on:
   push:
     branches: [ main ]
@@ -7,9 +9,10 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  # ----------------------------------------------------------- 1) TESTES (gate)
+  testes:
+    name: Build e testes
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -22,27 +25,72 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
-
-      - name: Build com Maven (sem rodar testes)
+      # `verify` compila e roda TODA a suite de testes. Se algo estiver
+      # vermelho, o job falha e nenhum job abaixo roda — nem imagem, nem deploy.
+      - name: Compilar e rodar os testes
         working-directory: backend
-        run: ./mvnw -B clean package -DskipTests
-
-      - name: Rodar testes
-        working-directory: backend
-        run: ./mvnw -B test
+        run: ./mvnw -B clean verify
 
       - name: Publicar o .jar gerado
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: codigo-vermelho-jar
           path: backend/target/*.jar
 
+  # ----------------------------------------------------- 2) IMAGEM (só na main)
+  imagem:
+    name: Build e push da imagem Docker (GHCR)
+    needs: testes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Nome da imagem em minúsculo (exigência do GHCR)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push (tags :latest e :SHA)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+
+  # ----------------------------------------------------- 3) DEPLOY (só na main)
+  # Dois serviços no Render, mesmo repositório:
+  #   - Web Service (backend Spring Boot, Docker, Root Directory = backend)
+  #   - Static Site (frontend React/Vite, Root Directory = frontend)
+  # Segredos guardados no cofre do GitHub (Settings > Secrets and variables > Actions).
   deploy:
     name: Deploy automático (Render)
-    needs: build
+    needs: imagem
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Disparar deploy no Render
+      - name: Deploy do backend (Web Service)
+        run: curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+      - name: Deploy do frontend (Static Site)
+        env:
+          HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_URL }}
         run: |
-          curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          if [ -n "$HOOK_FRONTEND" ]; then
+            curl -f -X POST "$HOOK_FRONTEND"
+          else
+            echo "RENDER_DEPLOY_HOOK_FRONTEND_URL não configurado — pulando o deploy do frontend."
+          fi

@@ -1,0 +1,60 @@
+name: codigo-vermelho
+
+# Sobe o sistema do zero com UM comando:
+#   cp .env.example .env   &&   docker compose up -d --build
+#
+# Dois servicos na mesma rede do Compose (codigo-vermelho-net): a API acha o
+# banco pelo nome do servico "db". Os dados do Postgres ficam num volume
+# nomeado (pgdata), entao sobrevivem a `docker compose down` (so somem com
+# `docker compose down -v`).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: codigo-vermelho-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-codigo_vermelho}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-codigo_vermelho}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codigo-vermelho-net
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codigo-vermelho-api
+    # So sobe depois que o banco responder ao healthcheck (pg_isready).
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Ativa o profile de producao (Postgres) — ver application-prod.properties
+      SPRING_PROFILES_ACTIVE: prod
+      # A API encontra o banco pela rede do Compose, no host "db"
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-codigo_vermelho}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/instituicoes"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - codigo-vermelho-net
+
+volumes:
+  pgdata:
+
+networks:
+  codigo-vermelho-net:
