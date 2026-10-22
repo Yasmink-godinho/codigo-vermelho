@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
         // 1. Fundação HEMOPE
         Instituicao hemope = buscarPorNome(NOME_HEMOPE);
         if (hemope == null) {
-            hemope = new Instituicao(NOME_HEMOPE, TipoInstituicao.HEMOCENTRO, "0000001", -8.0539, -34.8999);
+            hemope = new Instituicao(NOME_HEMOPE, TipoInstituicao.HEMOCENTRO, "Rua Joaquim Nabuco, 171 - Graças, Recife - PE", -8.0539, -34.8999);
             hemope.definirEstoqueMinimo(TipoSanguineo.O_NEGATIVO, 30);
             hemope.definirEstoqueMinimo(TipoSanguineo.O_POSITIVO, 50);
             hemope.definirEstoqueMinimo(TipoSanguineo.A_POSITIVO, 40);
@@ -72,7 +72,7 @@ public class DataInitializer implements CommandLineRunner {
         // 2. Hospital da Restauração
         Instituicao hr = buscarPorNome(NOME_RESTAURACAO);
         if (hr == null) {
-            hr = new Instituicao(NOME_RESTAURACAO, TipoInstituicao.HOSPITAL_PUBLICO, "0000002", -8.0573, -34.8984);
+            hr = new Instituicao(NOME_RESTAURACAO, TipoInstituicao.HOSPITAL_PUBLICO, "Av. Gov. Agamenon Magalhães, s/n - Derby, Recife - PE", -8.0573, -34.8984);
             hr.definirEstoqueMinimo(TipoSanguineo.O_NEGATIVO, 15);
             hr.definirEstoqueMinimo(TipoSanguineo.O_POSITIVO, 25);
             hr = instituicaoRepository.save(hr);
@@ -91,12 +91,12 @@ public class DataInitializer implements CommandLineRunner {
         Instituicao oswaldoCruz = buscarPorNome(NOME_OSWALDO_CRUZ);
         if (oswaldoCruz == null) {
             oswaldoCruz = instituicaoRepository.save(new Instituicao(
-                    NOME_OSWALDO_CRUZ, TipoInstituicao.HOSPITAL_PUBLICO, "0000003", -8.0409, -34.8896));
+                    NOME_OSWALDO_CRUZ, TipoInstituicao.HOSPITAL_PUBLICO, "Rua Arnóbio Marquês, 310 - Santo Amaro, Recife - PE", -8.0409, -34.8896));
         }
         // esse fica sem nenhuma ligacao de proposito, serve pra testar o caso "nao existe rota"
         if (buscarPorNome(NOME_AGRESTE) == null) {
             instituicaoRepository.save(new Instituicao(
-                    NOME_AGRESTE, TipoInstituicao.HOSPITAL_PUBLICO, "0000004", -8.2760, -35.9760));
+                    NOME_AGRESTE, TipoInstituicao.HOSPITAL_PUBLICO, "Av. Abdias de Carvalho, 1060 - Prado, Recife - PE", -8.2760, -35.9760));
         }
 
         // HEMOPE - Restauracao - Oswaldo Cruz (nao tem ligacao direta HEMOPE - Oswaldo Cruz,

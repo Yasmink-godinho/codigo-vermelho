@@ -1,46 +1,11 @@
+// Tela de Cadastro de Instituição — US01 (Geocodificação Dinâmica sem Pontos Fixos)
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconAlertTriangle, IconBuilding, IconCheck } from "@/components/icons";
 import { bloodTypes, neighborhoods } from "@/data/mockData";
 import { cadastrarInstituicaoApi } from "@/data/api";
 import type { CadastroForm, InstType } from "@/types";
-
-const PONTOS_CONHECIDOS_PE: Record<string, { lat: number; lng: number }> = {
-  "hospital agamenon magalhaes": { lat: -8.0308, lng: -34.9072 },
-  "hospital da restauracao": { lat: -8.0539, lng: -34.8811 },
-  "fundacao hemope": { lat: -8.0565, lng: -34.8740 },
-  "real hospital portugues": { lat: -8.0628, lng: -34.8970 },
-  "imip": { lat: -8.0572, lng: -34.8938 },
-  "hospital universitario oswaldo cruz": { lat: -8.0480, lng: -34.8775 },
-  "hospital barao de lucena": { lat: -8.1025, lng: -34.9245 },
-  "maternidade do recife": { lat: -8.0618, lng: -34.8862 },
-  "upa torroes": { lat: -8.0900, lng: -34.9140 },
-  "hospital boa viagem": { lat: -8.124337, lng: -34.898894 },
-  "hospital santa joana": { lat: -8.052265, lng: -34.898113 },
-};
-
-const BAIRRO_COORDS: Record<string, { lat: number; lng: number }> = {
-  "Boa Viagem": { lat: -8.124337, lng: -34.898894 },
-  "Ilha do Leite": { lat: -8.0645, lng: -34.8967 },
-  "Derby": { lat: -8.0539, lng: -34.8999 },
-  "Graças": { lat: -8.0435, lng: -34.9012 },
-  "Boa Vista": { lat: -8.0581, lng: -34.8912 },
-  "Santo Amaro": { lat: -8.0478, lng: -34.8824 },
-  "Casa Amarela": { lat: -8.0308, lng: -34.9072 },
-  "Espinheiro": { lat: -8.0392, lng: -34.8950 },
-  "Madalena": { lat: -8.0520, lng: -34.9120 },
-  "Torre": { lat: -8.0460, lng: -34.9110 },
-  "Parnamirim": { lat: -8.0320, lng: -34.9090 },
-  "Imbiribeira": { lat: -8.1065, lng: -34.9150 },
-  "Pina": { lat: -8.0870, lng: -34.8850 },
-  "Afogados": { lat: -8.0770, lng: -34.9080 },
-  "Caxangá": { lat: -8.0380, lng: -34.9450 },
-  "Várzea": { lat: -8.0480, lng: -34.9580 },
-  "Iputinga": { lat: -8.0350, lng: -34.9350 },
-  "Torrões": { lat: -8.0670, lng: -34.9310 },
-  "Prado": { lat: -8.0610, lng: -34.9080 },
-  "Recife Antigo": { lat: -8.0630, lng: -34.8710 },
-};
 
 export default function CadastrarInstituicaoScreen({
                                                      onCancel: propCancel,
@@ -60,13 +25,13 @@ export default function CadastrarInstituicaoScreen({
     name: "",
     type: "Hospital Privado",
     location: "",
-    lat: "-8.052265",
-    lng: "-34.898113",
+    lat: "",
+    lng: "",
     status: "ativa",
     minStock: Object.fromEntries(bloodTypes.map((bt) => [bt, "10"])),
   });
 
-  const [bairro, setBairro] = useState("Graças");
+  const [bairro, setBairro] = useState(neighborhoods[0] || "Derby");
   const [relations, setRelations] = useState(3);
   const [loadingGeocoding, setLoadingGeocoding] = useState(false);
   const [geoFeedback, setGeoFeedback] = useState<string | null>(null);
@@ -74,26 +39,12 @@ export default function CadastrarInstituicaoScreen({
   const [salvando, setSalvando] = useState(false);
 
   async function buscarCoordenadas(nomeOuEndereco?: string) {
-    const termoNome = (nomeOuEndereco || form.name).toLowerCase().trim();
-    const termoEndereco = (form.location || "").toLowerCase().trim();
-
-    for (const [chave, coords] of Object.entries(PONTOS_CONHECIDOS_PE)) {
-      if (termoNome.includes(chave) || termoEndereco.includes(chave)) {
-        setForm((f) => ({
-          ...f,
-          lat: coords.lat.toFixed(6),
-          lng: coords.lng.toFixed(6),
-        }));
-        setGeoFeedback(`Ponto reconhecido: coordenadas aplicadas (${coords.lat}, ${coords.lng}).`);
-        return;
-      }
-    }
-
-    const end = (form.location || form.name || bairro).trim();
+    const end = (nomeOuEndereco || form.location || form.name || bairro).trim();
     if (!end) return;
 
     setLoadingGeocoding(true);
     setGeoFeedback(null);
+
     try {
       const query = encodeURIComponent(`${end}, Recife, Pernambuco, Brasil`);
       const response = await fetch(
@@ -105,31 +56,23 @@ export default function CadastrarInstituicaoScreen({
             },
           }
       );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        setForm((f) => ({
-          ...f,
-          lat: parseFloat(data[0].lat).toFixed(6),
-          lng: parseFloat(data[0].lon).toFixed(6),
-        }));
-        setGeoFeedback("Coordenadas localizadas no mapa.");
-      } else if (BAIRRO_COORDS[bairro]) {
-        setForm((f) => ({
-          ...f,
-          lat: BAIRRO_COORDS[bairro].lat.toString(),
-          lng: BAIRRO_COORDS[bairro].lng.toString(),
-        }));
-        setGeoFeedback("Coordenadas aproximadas do bairro aplicadas.");
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setForm((f) => ({
+            ...f,
+            lat: parseFloat(data[0].lat).toFixed(6),
+            lng: parseFloat(data[0].lon).toFixed(6),
+          }));
+          setGeoFeedback(`Coordenadas localizadas: (${parseFloat(data[0].lat).toFixed(4)}, ${parseFloat(data[0].lon).toFixed(4)})`);
+          return;
+        }
       }
+
+      setGeoFeedback("Endereço não localizado com precisão. Informe a latitude e longitude manualmente.");
     } catch {
-      if (BAIRRO_COORDS[bairro]) {
-        setForm((f) => ({
-          ...f,
-          lat: BAIRRO_COORDS[bairro].lat.toString(),
-          lng: BAIRRO_COORDS[bairro].lng.toString(),
-        }));
-      }
-      setGeoFeedback("Coordenadas do bairro aplicadas como salvaguarda.");
+      setGeoFeedback("Falha na consulta de geolocalização. Informe as coordenadas manualmente.");
     } finally {
       setLoadingGeocoding(false);
     }
@@ -137,26 +80,22 @@ export default function CadastrarInstituicaoScreen({
 
   function handleBairroChange(novoBairro: string) {
     setBairro(novoBairro);
-    if (BAIRRO_COORDS[novoBairro] && !form.location) {
-      setForm((f) => ({
-        ...f,
-        lat: BAIRRO_COORDS[novoBairro].lat.toString(),
-        lng: BAIRRO_COORDS[novoBairro].lng.toString(),
-      }));
+    if (!form.location) {
+      buscarCoordenadas(novoBairro);
     }
   }
 
   const latNum = parseFloat(form.lat);
   const lngNum = parseFloat(form.lng);
-  const latInvalid = form.lat !== "" && (isNaN(latNum) || latNum < -90 || latNum > 90);
-  const lngInvalid = form.lng !== "" && (isNaN(lngNum) || lngNum < -180 || lngNum > 180);
-  const coordsError = latInvalid || lngInvalid;
+  const latInvalid = form.lat === "" || isNaN(latNum) || latNum < -90 || latNum > 90;
+  const lngInvalid = form.lng === "" || isNaN(lngNum) || lngNum < -180 || lngNum > 180;
+  const coordsError = submitted && (latInvalid || lngInvalid);
   const nameError = submitted && !form.name.trim();
 
   async function handleSubmit() {
     if (salvando) return;
     setSubmitted(true);
-    if (!form.name.trim() || coordsError) return;
+    if (!form.name.trim() || latInvalid || lngInvalid) return;
 
     setSalvando(true);
     const minStockFormatado: Record<string, number> = {};
@@ -169,11 +108,10 @@ export default function CadastrarInstituicaoScreen({
       type: form.type,
       location: form.location.trim() || `${bairro}, Recife - PE`,
       neighborhood: bairro,
-      latitude: !isNaN(latNum) ? latNum : -8.052265,
-      longitude: !isNaN(lngNum) ? lngNum : -34.898113,
+      latitude: latNum,
+      longitude: lngNum,
       status: form.status,
       relations: Number(relations),
-      // Tipos sanguíneos atribuídos aos componentes para a legenda da listagem
       components: ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
       minStock: minStockFormatado,
     };
@@ -226,7 +164,9 @@ export default function CadastrarInstituicaoScreen({
               </div>
               <div>
                 <h2 className="text-[16px] font-semibold text-slate-800">Cadastrar Nova Instituição</h2>
-                <p className="text-[12px] text-slate-400 mt-0.5">Defina as informações logísticas, estoque de segurança e coordenadas de georreferenciamento.</p>
+                <p className="text-[12px] text-slate-400 mt-0.5">
+                  O endereço digitado busca as coordenadas reais automaticamente via OpenStreetMap.
+                </p>
               </div>
             </div>
           </div>
@@ -241,7 +181,7 @@ export default function CadastrarInstituicaoScreen({
                   value={form.name}
                   onBlur={() => buscarCoordenadas()}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Ex: Hospital Santa Joana Recife"
+                  placeholder="Ex: Hospital da Restauração"
                   className={nameError ? inputError : inputNormal}
               />
               {nameError && (
@@ -252,9 +192,11 @@ export default function CadastrarInstituicaoScreen({
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Tipo de Instituição</label>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                Tipo de Instituição
+              </label>
               <div className="flex flex-wrap gap-2">
-                {(["Hospital Público","Hospital Privado","UPA","Hemocentro","Maternidade","Clínica"] as InstType[]).map((t) => (
+                {(["Hospital Público", "Hospital Privado", "UPA", "Hemocentro", "Maternidade", "Clínica"] as InstType[]).map((t) => (
                     <button
                         key={t}
                         type="button"
@@ -326,7 +268,7 @@ export default function CadastrarInstituicaoScreen({
                     value={form.location}
                     onBlur={() => buscarCoordenadas()}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="Ex: Rua Joaquim Nabuco, 200 — Graças, Recife - PE"
+                    placeholder="Ex: Av. Gov. Agamenon Magalhães, s/n — Derby, Recife - PE"
                     className={inputNormal}
                 />
                 <button
@@ -335,7 +277,7 @@ export default function CadastrarInstituicaoScreen({
                     disabled={loadingGeocoding}
                     className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12.5px] font-medium rounded-lg border border-slate-200 flex-shrink-0 transition-colors cursor-pointer"
                 >
-                  {loadingGeocoding ? "A procurar..." : "Localizar Coordenadas"}
+                  {loadingGeocoding ? "Localizando..." : "Buscar Coordenadas"}
                 </button>
               </div>
             </div>
@@ -347,7 +289,9 @@ export default function CadastrarInstituicaoScreen({
             )}
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Coordenadas Reais para o Mapa</label>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                Coordenadas de Georreferenciamento <span className="text-[#C8102E]">*</span>
+              </label>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-[11px] text-slate-400 mb-1">Latitude</div>
@@ -356,7 +300,8 @@ export default function CadastrarInstituicaoScreen({
                       step="any"
                       value={form.lat}
                       onChange={(e) => setForm((f) => ({ ...f, lat: e.target.value }))}
-                      className={latInvalid ? inputError : inputNormal}
+                      placeholder="-8.0539"
+                      className={coordsError && latInvalid ? inputError : inputNormal}
                       style={{ fontFamily: "'JetBrains Mono', monospace" }}
                   />
                 </div>
@@ -367,16 +312,22 @@ export default function CadastrarInstituicaoScreen({
                       step="any"
                       value={form.lng}
                       onChange={(e) => setForm((f) => ({ ...f, lng: e.target.value }))}
-                      className={lngInvalid ? inputError : inputNormal}
+                      placeholder="-34.8988"
+                      className={coordsError && lngInvalid ? inputError : inputNormal}
                       style={{ fontFamily: "'JetBrains Mono', monospace" }}
                   />
                 </div>
               </div>
+              {coordsError && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[12px] text-[#C8102E]">
+                    <IconAlertTriangle size={13} /> Informe coordenadas válidas para plotagem no mapa.
+                  </div>
+              )}
             </div>
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-3">
-                Estoque Mínimo de Segurança (minStock) <span className="text-slate-400 normal-case font-normal">(unidades por tipo sanguíneo)</span>
+                Estoque Mínimo de Segurança (minStock) <span className="text-slate-400 normal-case font-normal">(unidades por tipo)</span>
               </label>
               <div className="grid grid-cols-4 gap-3">
                 {bloodTypes.map((bt) => (
@@ -387,7 +338,6 @@ export default function CadastrarInstituicaoScreen({
                           min="0"
                           value={form.minStock[bt]}
                           onChange={(e) => setForm((f) => ({ ...f, minStock: { ...f.minStock, [bt]: e.target.value } }))}
-                          placeholder="0"
                           className="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-[13px] text-center focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 bg-white"
                           style={{ fontFamily: "'JetBrains Mono', monospace" }}
                       />
