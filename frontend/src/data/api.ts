@@ -191,17 +191,43 @@ export function desnormalizarTipoInstituicao(tipo: string = ""): string {
   return map[t] || tipo;
 }
 
+// Identificadores auxiliares para matching entre telas
+function obterIdInstituicao(instId: any, instNome: any): number {
+  if (instId !== undefined && instId !== null && !isNaN(Number(instId)) && Number(instId) > 0) {
+    return Number(instId);
+  }
+  const n = String(instNome || "").toLowerCase();
+  if (n.includes("hemope")) return 1;
+  if (n.includes("restaura")) return 2;
+  if (n.includes("oswaldo") || n.includes("huoc")) return 3;
+  if (n.includes("agreste")) return 4;
+  return 0;
+}
+
+function normalizarSiglaSangue(str: any): string {
+  if (!str) return "";
+  const s = String(str).trim();
+  const match = s.match(/(AB|A|B|O)[\+\-]/i);
+  if (match) return match[0].toUpperCase();
+  const desnorm = desnormalizarTipoSanguineo(s);
+  const match2 = desnorm.match(/(AB|A|B|O)[\+\-]/i);
+  if (match2) return match2[0].toUpperCase();
+  return s.toUpperCase();
+}
+
 // ─── 1. Instituições (CRUD Completo e Aliases) ────────────────────────────────
 
 export async function getInstituicoes(): Promise<any[]> {
-  let backendList: any[] = [];
   try {
     const res = await fetch(`${API_BASE_URL}/instituicoes`);
     if (res.ok) {
-      backendList = await res.json();
+      const backendList = await res.json();
+      if (Array.isArray(backendList) && backendList.length > 0) {
+        return backendList;
+      }
     }
   } catch (e) {
-    console.warn("Backend offline ao listar instituições.");
+    console.warn("Backend offline ao listar instituições. Utilizando fallback local.");
   }
 
   let localList: any[] = [];
@@ -209,10 +235,6 @@ export async function getInstituicoes(): Promise<any[]> {
     const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
     if (saved) localList = JSON.parse(saved);
   } catch (e) {}
-
-  if (backendList.length > 0) {
-    return [...backendList, ...localList.filter((l) => !backendList.some((b) => b.id === l.id))];
-  }
 
   if (localList.length > 0) return localList;
 
@@ -242,7 +264,6 @@ export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
   const lngVal = Number(payload.longitude);
 
   const body = {
-    id: Date.now(),
     nome: nomeVal,
     name: nomeVal,
     tipo: tipoEnum,
@@ -277,8 +298,10 @@ export async function cadastrarInstituicaoApi(payload: any): Promise<any> {
   try {
     const saved = localStorage.getItem(INSTITUICOES_STORAGE_KEY);
     const lista = saved ? JSON.parse(saved) : [];
-    lista.push(body);
+    const localObj = { id: Date.now(), ...body };
+    lista.push(localObj);
     localStorage.setItem(INSTITUICOES_STORAGE_KEY, JSON.stringify(lista));
+    return localObj;
   } catch (e) {}
 
   return body;
@@ -354,16 +377,19 @@ export async function alternarStatusInstituicaoApi(id: number | string): Promise
   return atualizado || { id: Number(id), status: "ativa" };
 }
 
-// ─── 2. Lotes e Fila FEFO ─────────────────────────────────────────────────────
+// ─── 2. Lotes e Fila FEFO (Ajustado: Inclusão Imediata + Abate de Transferência) ──
 
 export async function getFilaFEFO(): Promise<any[]> {
   let lotesBackend: any[] = [];
   try {
     const res = await fetch(`${API_BASE_URL}/lotes/fila-fefo`);
     if (res.ok) {
-      lotesBackend = await res.json();
+      const data = await res.json();
+      if (Array.isArray(data)) lotesBackend = data;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Backend offline ao buscar Fila FEFO.");
+  }
 
   let lotesLocais: any[] = [];
   try {
@@ -371,12 +397,87 @@ export async function getFilaFEFO(): Promise<any[]> {
     if (salvos) lotesLocais = JSON.parse(salvos);
   } catch (e) {}
 
-  if (lotesBackend.length > 0) {
-    return [...lotesLocais, ...lotesBackend];
+  // 1. Mescla os lotes do backend com novos lotes criados (Ponto 1)
+  const codigosBackend = new Set(
+      lotesBackend.map((b) => String(b.lotCode || b.codigoLote || b.id))
+  );
+  const novosLocais = lotesLocais.filter(
+      (l) => !codigosBackend.has(String(l.lotCode || l.codigoLote || l.id))
+  );
+
+  let listaBase: any[] = [...novosLocais, ...lotesBackend];
+  if (listaBase.length === 0) {
+    const { fefoQueueData } = await import("@/data/mockData");
+    listaBase = [...fefoQueueData];
   }
 
-  const { fefoQueueData } = await import("@/data/mockData");
-  return [...lotesLocais, ...fefoQueueData];
+  // Clona para calcular o abatimento FEFO sem mutar arrays originais
+  const lotesCopia = listaBase.map((l) => ({
+    ...l,
+    quantity: Number(l.quantity ?? l.quantidade ?? 0),
+    quantidade: Number(l.quantity ?? l.quantidade ?? 0),
+  }));
+
+  // 2. Abate automático das transferências manuais aprovadas/ativas (Ponto 2)
+  const transferencias = getTransferenciasLocais();
+  const transferenciasManuaisAtivas = transferencias.filter(
+      (t) =>
+          !String(t.id).startsWith("#RED-") &&
+          String(t.id) !== "#1029" &&
+          t.status !== "Recusada" &&
+          t.status !== "Cancelada"
+  );
+
+  for (const t of transferenciasManuaisAtivas) {
+    const origemId = obterIdInstituicao(t.origemId, t.from);
+    const sangueTrf = normalizarSiglaSangue(t.comp);
+    let restante = Number(t.qty || 0);
+
+    if (origemId > 0 && restante > 0) {
+      // Ordena por validade FEFO para consumir as mais antigas primeiro
+      lotesCopia.sort((a, b) => {
+        const da = new Date(a.expiryDate || a.validade || a.dataValidade || "2099-12-31").getTime();
+        const db = new Date(b.expiryDate || b.validade || b.dataValidade || "2099-12-31").getTime();
+        return da - db;
+      });
+
+      for (const lote of lotesCopia) {
+        if (restante <= 0) break;
+        const loteInstId = obterIdInstituicao(
+            lote.instId || lote.instituicaoId,
+            lote.instName || lote.instituicaoNome
+        );
+        const loteSangue = normalizarSiglaSangue(lote.bloodType || lote.tipoSanguineo);
+
+        const mesmoHospital = loteInstId === origemId;
+        const mesmoSangue =
+            loteSangue === sangueTrf ||
+            (loteSangue && sangueTrf && (loteSangue.includes(sangueTrf) || sangueTrf.includes(loteSangue)));
+
+        if (mesmoHospital && mesmoSangue) {
+          const qtdAtual = Number(lote.quantity ?? lote.quantidade ?? 0);
+          if (qtdAtual <= restante) {
+            restante -= qtdAtual;
+            lote.quantity = 0;
+            lote.quantidade = 0;
+          } else {
+            lote.quantity = qtdAtual - restante;
+            lote.quantidade = lote.quantity;
+            restante = 0;
+          }
+        }
+      }
+    }
+  }
+
+  // Retorna os lotes válidos com saldo > 0 ordenados pela regra FEFO
+  return lotesCopia
+      .filter((l) => Number(l.quantity ?? l.quantidade ?? 0) > 0)
+      .sort((a, b) => {
+        const da = new Date(a.expiryDate || a.validade || a.dataValidade || "2099-12-31").getTime();
+        const db = new Date(b.expiryDate || b.validade || b.dataValidade || "2099-12-31").getTime();
+        return da - db;
+      });
 }
 
 export const buscarFilaFefoApi = getFilaFEFO;
@@ -385,26 +486,15 @@ export const listarLotesApi = getFilaFEFO;
 export const getLotesApi = getFilaFEFO;
 
 export async function buscarLotesPorInstituicaoApi(instId: number | string): Promise<any[]> {
-  let lotesLocais: any[] = [];
-  try {
-    const salvos = localStorage.getItem(LOTES_STORAGE_KEY);
-    if (salvos) {
-      lotesLocais = JSON.parse(salvos).filter(
-          (l: any) => String(l.instId || l.instituicaoId) === String(instId)
-      );
-    }
-  } catch (e) {}
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`);
-    if (res.ok) {
-      const doBack = await res.json();
-      return [...lotesLocais, ...doBack];
-    }
-  } catch (e) {}
-
   const todos = await getFilaFEFO();
-  return todos.filter((lote: any) => String(lote.instId || lote.instituicaoId) === String(instId));
+  const targetId = Number(instId);
+  return todos.filter((lote: any) => {
+    const id = obterIdInstituicao(
+        lote.instId || lote.instituicaoId,
+        lote.instName || lote.instituicaoNome
+    );
+    return id === targetId;
+  });
 }
 
 export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
@@ -426,12 +516,20 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
   const expDate = dados.expiryDate ? formatarDataISO(dados.expiryDate) : "2027-10-20";
   const codLote = dados.lotCode || dados.codigoLote || `LT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  const mapaNomes: Record<number, string> = {
+    1: "Fundação HEMOPE",
+    2: "Hospital da Restauração",
+    3: "Hospital Universitário Oswaldo Cruz",
+    4: "Hospital Regional do Agreste",
+  };
+  const nomeInst = dados.instName || dados.instituicaoNome || mapaNomes[instId] || "Instituição";
+
   const novoLoteObj = {
     id: Date.now(),
     instId: instId,
     instituicaoId: instId,
-    instName: dados.instName || "Instituição",
-    instituicaoNome: dados.instName || "Instituição",
+    instName: nomeInst,
+    instituicaoNome: nomeInst,
     bloodType: sangue,
     tipoSanguineo: normalizarTipoSanguineo(sangue),
     component: comp,
@@ -448,6 +546,7 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
     status: "disponivel",
   };
 
+  // Salva no localStorage garantindo inclusão imediata na Fila FEFO e Dashboard
   try {
     const salvos = localStorage.getItem(LOTES_STORAGE_KEY);
     const lista = salvos ? JSON.parse(salvos) : [];
@@ -455,6 +554,7 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
     localStorage.setItem(LOTES_STORAGE_KEY, JSON.stringify(lista));
   } catch (e) {}
 
+  // Tenta persistir no backend
   try {
     await fetch(`${API_BASE_URL}/instituicoes/${instId}/lotes`, {
       method: "POST",
@@ -466,7 +566,6 @@ export async function cadastrarLoteApi(arg1: any, arg2?: any): Promise<any> {
   return novoLoteObj;
 }
 
-// Aliases exigidos pelo App.tsx e FilaFefo.tsx
 export const registrarLoteApi = cadastrarLoteApi;
 export const criarLoteApi = cadastrarLoteApi;
 
@@ -475,17 +574,17 @@ export const criarLoteApi = cadastrarLoteApi;
 const TRANSFERENCIA_PADRAO: TransferenciaAPI[] = [
   {
     id: "#1029",
-    from: "Hospital da Restauração",
-    to: "Hospital Univ. Oswaldo Cruz",
-    origemId: 2,
+    from: "Fundação HEMOPE",
+    to: "Hospital Universitário Oswaldo Cruz",
+    origemId: 1,
     destinoId: 3,
     comp: "O-",
-    qty: 3,
+    qty: 2,
     status: "Em transporte",
     departure: "09:04",
     eta: "09:52",
     temperature: "4,2°C",
-    route: "Via Av. Gov. Agamenon Magalhães — 2,1 km",
+    route: "Via Av. Gov. Agamenon Magalhães — 2,5 km",
     carrier: "LogMed Express — Veículo L-412",
     operationStatus: "Normal",
     notes: "Transferência autorizada. Contêiner lacrado em temperatura estável.",
@@ -506,15 +605,18 @@ const TRANSFERENCIA_PADRAO: TransferenciaAPI[] = [
 export function getTransferenciasLocais(): TransferenciaAPI[] {
   try {
     const salvos = localStorage.getItem(TRANSFERENCIAS_STORAGE_KEY);
-    if (salvos) return JSON.parse(salvos);
+    if (salvos) {
+      const parsed = JSON.parse(salvos);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch (e) {}
-  localStorage.setItem(TRANSFERENCIAS_STORAGE_KEY, JSON.stringify(TRANSFERENCIA_PADRAO));
   return TRANSFERENCIA_PADRAO;
 }
 
 export function salvarTransferenciasLocais(lista: TransferenciaAPI[]) {
   try {
     localStorage.setItem(TRANSFERENCIAS_STORAGE_KEY, JSON.stringify(lista));
+    window.dispatchEvent(new Event("storage"));
   } catch (e) {}
 }
 
@@ -580,13 +682,17 @@ export async function calcularRotaApi(
   };
 }
 
-// ─── 5. Requisições (com suporte a aliases esperados por App.tsx e Requisicoes.tsx) ──
+// ─── 5. Requisições ───────────────────────────────────────────────────────────
 
 export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
-  let backendList: any[] = [];
   try {
     const res = await fetch(`${API_BASE_URL}/requisicoes`);
-    if (res.ok) backendList = await res.json();
+    if (res.ok) {
+      const backendList = await res.json();
+      if (Array.isArray(backendList) && backendList.length > 0) {
+        return backendList;
+      }
+    }
   } catch (e) {
     console.warn("Backend offline ao buscar requisições.");
   }
@@ -597,10 +703,6 @@ export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
     if (salvos) localList = JSON.parse(salvos);
   } catch (e) {}
 
-  if (backendList.length > 0) {
-    return [...backendList, ...localList.filter((l) => !backendList.some((b) => b.id === l.id))];
-  }
-
   if (localList.length > 0) return localList;
 
   return [
@@ -608,8 +710,8 @@ export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
       id: "#REQ-101",
       instituicaoSolicitanteId: 3,
       instituicaoSolicitanteNome: "Hospital Universitário Oswaldo Cruz",
-      instituicaoOrigemId: 2,
-      instituicaoOrigemNome: "Hospital da Restauração",
+      instituicaoOrigemId: 1,
+      instituicaoOrigemNome: "Fundação HEMOPE",
       tipoSanguineo: "O-",
       componente: "Concentrado de Hemácias",
       quantidade: 3,
