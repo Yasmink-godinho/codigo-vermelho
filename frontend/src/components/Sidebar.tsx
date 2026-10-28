@@ -35,6 +35,8 @@ export function Sidebar({
     switch (id) {
       case "dashboard":
         return "/dashboard";
+      case "paineis":
+        return "/paineis";
       case "alertas":
         return "/alertas";
       case "fefo":

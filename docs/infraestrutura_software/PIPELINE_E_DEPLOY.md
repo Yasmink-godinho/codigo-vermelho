@@ -68,8 +68,8 @@ Rollback`. O Render redeploya o build anterior em um clique.
 **Opção C — pelo Git:** `git revert <commit-ruim>` e push na main — a esteira
 roda de novo e publica a versão corrigida.
 
-## 5. Evidências a anexar (em `docs/evidencias/`)
+## 5. Evidências a anexar (em `docs/infraestrutura_software/evidencias/`)
 
-Ver `docs/evidencias/README.md` para a lista do que capturar: execução
+Ver `docs/infraestrutura_software/evidencias/README.md` para a lista do que capturar: execução
 **vermelha** que barrou o merge/deploy, execução **verde** que publicou, a
 **URL no ar** respondendo, e a tela de **rollback**.

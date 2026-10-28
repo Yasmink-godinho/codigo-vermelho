@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Sidebar, { type NavItem } from "@/components/Sidebar";
 import {
   IconArrows, IconBarChart2, IconBell, IconBuilding, IconClipboard, IconGrid,
-  IconList, IconTruck, IconWifi,
+  IconLayoutPanels, IconList, IconTruck, IconWifi,
 } from "@/components/icons";
 import { DEMO_LOTES, DEMO_REQUISICOES, institutionsData, neighborhoods } from "@/data/mockData";
 import {
@@ -28,6 +28,7 @@ import InstituicoesScreen from "@/pages/Instituicoes";
 import LoginScreen from "@/pages/Login";
 import MonitoramentoRedeScreen from "@/pages/MonitoramentoRede";
 import NovaRequisicaoScreen from "@/pages/NovaRequisicao";
+import PaineisEstoqueDemandaScreen from "@/pages/PaineisEstoqueDemanda";
 import RedistribuicoesScreen from "@/pages/Redistribuicoes";
 import RegistrarLoteScreen from "@/pages/RegistrarLote";
 import RequisicoesScreen from "@/pages/Requisicoes";
@@ -78,6 +79,7 @@ function MainLayout({
 
   const screenSubtitle: Record<Screen, string> = {
     dashboard: "Visão Geral",
+    paineis: "Inteligência de Dados",
     alertas: "Monitoramento",
     fefo: "Controle de Estoque",
     requisicoes: "Operações",
@@ -94,6 +96,7 @@ function MainLayout({
 
   const screenTitle: Record<Screen, string> = {
     dashboard: "Dashboard",
+    paineis: "Painéis de Estoque e Demanda",
     alertas: "Central de Alertas",
     fefo: "Fila de Prioridade — FEFO",
     requisicoes: "Requisições",
@@ -110,6 +113,7 @@ function MainLayout({
 
   const ALL_NAV_ITEMS: NavItem[] = [
     { id: "dashboard", label: "Dashboard", icon: <IconGrid /> },
+    { id: "paineis", label: "Painéis", icon: <IconLayoutPanels /> },
     { id: "alertas", label: "Alertas", icon: <IconBell /> },
     { id: "fefo", label: "Fila FEFO", icon: <IconList /> },
     { id: "requisicoes", label: "Requisições", icon: <IconClipboard /> },
@@ -408,6 +412,7 @@ export default function App() {
             <Route element={<MainLayout currentUser={currentUser} onLogout={handleLogout} />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardScreen />} />
+              <Route path="/paineis" element={<PaineisEstoqueDemandaScreen />} />
               <Route path="/alertas" element={<AlertasScreen filter={alertFilter} setFilter={setAlertFilter} />} />
               <Route path="/fefo" element={<FefoScreen />} />
 

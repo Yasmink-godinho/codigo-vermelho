@@ -89,7 +89,9 @@ Aplicação de estatística descritiva para análise do consumo de hemocomponent
 * Desvio padrão;
 * Coeficiente de variação;
 * Classificação da variabilidade da demanda;
-* Indicadores para apoio à gestão de estoque.
+* Indicadores para apoio à gestão de estoque;
+* Painéis de estoque e demanda (evolução dos indicadores da U1).
+* 📂 Documentação: [`docs/estatistica/`](docs/estatistica/)
 
 ### ⚙️ SO — Infraestrutura de Software
 
