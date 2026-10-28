@@ -1,5 +1,3 @@
-import java.util.*;
-
 
 class Bolsa {
     private String idBolsa;
@@ -100,56 +98,116 @@ class EstoqueUnidade {
 
 
 class GerenciadorEstoque {
-    private List<Bolsa> bolsasDisponiveis = new LinkedList<>();
+    private static class NoBolsa {
+        Bolsa dado;
+        NoBolsa proximo;
+        NoBolsa(Bolsa dado, NoBolsa proximo) {
+            this.dado = dado;
+            this.proximo = proximo;
+        }
+    }
+
+    private NoBolsa inicio;
 
     public void adicionarBolsa(Bolsa bolsa) {
-        bolsasDisponiveis.add(bolsa);
+        inicio = new NoBolsa(bolsa, inicio);
     }
 
     public boolean removerBolsa(String idBolsa) {
-        return bolsasDisponiveis.removeIf(b -> b.getIdBolsa().equals(idBolsa));
+        NoBolsa atual = inicio;
+        NoBolsa anterior = null;
+        while (atual != null) {
+            if (atual.dado.getIdBolsa().equals(idBolsa)) {
+                if (anterior == null) inicio = atual.proximo;
+                else anterior.proximo = atual.proximo;
+                return true;
+            }
+            anterior = atual;
+            atual = atual.proximo;
+        }
+        return false;
+    }
+
+    public Bolsa consultarBolsa(String idBolsa) {
+        NoBolsa atual = inicio;
+        while (atual != null) {
+            if (atual.dado.getIdBolsa().equals(idBolsa)) return atual.dado;
+            atual = atual.proximo;
+        }
+        return null;
     }
 
     public void listarBolsas() {
-        for (Bolsa b : bolsasDisponiveis) {
-            System.out.println(b);
+        NoBolsa atual = inicio;
+        while (atual != null) {
+            System.out.println(atual.dado);
+            atual = atual.proximo;
         }
     }
 }
 
-
 class FilaRequisicoes {
-    private Queue<Requisicao> pendentes = new LinkedList<>();
+    private static class NoRequisicao {
+        Requisicao dado;
+        NoRequisicao proximo;
+        NoRequisicao(Requisicao dado) { this.dado = dado; }
+    }
+
+    private NoRequisicao inicio;
+    private NoRequisicao fim;
 
     public void enfileirar(Requisicao r) {
-        pendentes.add(r);
+        NoRequisicao novo = new NoRequisicao(r);
+        if (fim == null) inicio = novo;
+        else fim.proximo = novo;
+        fim = novo;
+    }
+
+    public Requisicao consultarProxima() {
+        return inicio == null ? null : inicio.dado;
     }
 
     public Requisicao atenderProxima() {
-        Requisicao r = pendentes.poll(); 
-        if (r != null) r.setStatus("Atendida");
+        if (inicio == null) return null;
+        Requisicao r = inicio.dado;
+        inicio = inicio.proximo;
+        if (inicio == null) fim = null;
+        r.setStatus("Atendida");
         return r;
     }
 
-    public boolean vazia() {
-        return pendentes.isEmpty();
-    }
+    public boolean vazia() { return inicio == null; }
 }
 
-
 class HistoricoMovimentacoes {
-    private Deque<Movimentacao> eventos = new ArrayDeque<>();
+    private static class NoMovimentacao {
+        Movimentacao dado;
+        NoMovimentacao proximo;
+        NoMovimentacao(Movimentacao dado, NoMovimentacao proximo) {
+            this.dado = dado;
+            this.proximo = proximo;
+        }
+    }
+
+    private NoMovimentacao topo;
 
     public void registrarEvento(Movimentacao m) {
-        eventos.push(m); 
+        topo = new NoMovimentacao(m, topo);
     }
 
     public Movimentacao consultarUltimoEvento() {
-        return eventos.peek(); 
+        return topo == null ? null : topo.dado;
+    }
+
+    public Movimentacao removerUltimoEvento() {
+        if (topo == null) return null;
+        Movimentacao removida = topo.dado;
+        topo = topo.proximo;
+        return removida;
     }
 }
 
-public class TesteModeloDominio {
+class TesteModeloDominio {
     public static void main(String[] args) {
         GerenciadorEstoque estoqueH01 = new GerenciadorEstoque();
         estoqueH01.adicionarBolsa(new Bolsa("B001", "O+", "2026-09-01", "2026-10-13", "H01", "Disponivel"));

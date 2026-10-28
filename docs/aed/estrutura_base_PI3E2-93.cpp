@@ -41,6 +41,24 @@ private:
     NoBolsa* inicio;
 public:
     ListaBolsas() { inicio = nullptr; }
+    ~ListaBolsas() {
+        while (inicio != nullptr) {
+            NoBolsa* temp = inicio;
+            inicio = inicio->proximo;
+            delete temp;
+        }
+    }
+    ListaBolsas(const ListaBolsas&) = delete;
+    ListaBolsas& operator=(const ListaBolsas&) = delete;
+
+    const Bolsa* consultar(const string& idBolsa) const {
+        NoBolsa* atual = inicio;
+        while (atual != nullptr) {
+            if (atual->dado.idBolsa == idBolsa) return &atual->dado;
+            atual = atual->proximo;
+        }
+        return nullptr;
+    }
 
     void inserir(Bolsa nova) {
         NoBolsa* novo = new NoBolsa();
@@ -89,6 +107,20 @@ private:
     NoRequisicao* fim;
 public:
     FilaRequisicoes() { inicio = nullptr; fim = nullptr; }
+    ~FilaRequisicoes() {
+        while (inicio != nullptr) {
+            NoRequisicao* temp = inicio;
+            inicio = inicio->proximo;
+            delete temp;
+        }
+        fim = nullptr;
+    }
+    FilaRequisicoes(const FilaRequisicoes&) = delete;
+    FilaRequisicoes& operator=(const FilaRequisicoes&) = delete;
+
+    const Requisicao* consultarProxima() const {
+        return inicio == nullptr ? nullptr : &inicio->dado;
+    }
 
     void enfileirar(Requisicao nova) {
         NoRequisicao* novo = new NoRequisicao();
@@ -131,6 +163,19 @@ private:
     NoMovimentacao* topo;
 public:
     PilhaMovimentacoes() { topo = nullptr; }
+    ~PilhaMovimentacoes() {
+        while (topo != nullptr) {
+            NoMovimentacao* temp = topo;
+            topo = topo->proximo;
+            delete temp;
+        }
+    }
+    PilhaMovimentacoes(const PilhaMovimentacoes&) = delete;
+    PilhaMovimentacoes& operator=(const PilhaMovimentacoes&) = delete;
+
+    const Movimentacao* consultarTopo() const {
+        return topo == nullptr ? nullptr : &topo->dado;
+    }
 
     void empilhar(Movimentacao nova) {
         NoMovimentacao* novo = new NoMovimentacao();
