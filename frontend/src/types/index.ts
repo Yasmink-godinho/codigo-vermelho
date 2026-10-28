@@ -20,7 +20,7 @@ export interface Hospital {
 
 // ─── App shell ───────────────────────────────────────────────────────────────
 
-export type Screen = "dashboard" | "alertas" | "fefo" | "requisicoes" | "nova_requisicao" | "redistribuicoes" | "analise" | "transferencias" | "rede" | "instituicoes" | "cadastrar_instituicao" | "registrar_lote" | "estoque_instituicao";
+export type Screen = "dashboard" | "paineis" | "alertas" | "fefo" | "requisicoes" | "nova_requisicao" | "redistribuicoes" | "analise" | "transferencias" | "rede" | "instituicoes" | "cadastrar_instituicao" | "registrar_lote" | "estoque_instituicao";
 export type UserRole = "operador" | "admin_rede" | "admin_principal";
 
 export interface AppUser {
