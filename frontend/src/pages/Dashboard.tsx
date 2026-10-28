@@ -1,4 +1,4 @@
-// Tela de Dashboard — US02 & US05 (Sincronização Compartilhada e Exibição de Rota nas Ruas)
+// Tela de Dashboard — US02 & US05 (Rastreamento em Tempo Real e Gestão Logística)
 
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, CircleMarker, Polyline, useMap, Tooltip as MapTooltip } from "react-leaflet";
@@ -25,13 +25,13 @@ export default function DashboardScreen() {
     const [instituicoesReais, setInstituicoesReais] = useState<any[]>([]);
     const [totalEstoqueReal, setTotalEstoqueReal] = useState<number>(0);
     const [transferencias, setTransferencias] = useState<TransferenciaAPI[]>([]);
-    const [selectedTransfer, setSelectedTransfer] = useState<TransferenciaAPI | null>(null);
+    const [selectedTransferIndex, setSelectedTransferIndex] = useState<number>(0);
 
     const [rotaDijkstra, setRotaDijkstra] = useState<RotaAPI | null>(null);
     const [rotaGeometricaRuas, setRotaGeometricaRuas] = useState<[number, number][]>([]);
     const [carregandoRota, setCarregandoRota] = useState<boolean>(false);
 
-    // 1. Carrega dados reais e lista compartilhada de transferências
+    // 1. Carrega dados atualizados da rede e transferências locais
     useEffect(() => {
         getInstituicoes().then((insts) => {
             if (Array.isArray(insts) && insts.length > 0) {
@@ -49,13 +49,19 @@ export default function DashboardScreen() {
         const lista = getTransferenciasLocais();
         setTransferencias(lista);
         if (lista.length > 0) {
-            setSelectedTransfer(lista[0]);
+            setSelectedTransferIndex(0);
         }
     }, []);
 
-    // 2. Traça rota somente se estiver 'Em transporte'
+    const selectedTransfer = transferencias[selectedTransferIndex] || null;
+
+    // 2. Traça rota dinâmica apenas para o transporte selecionado
     useEffect(() => {
-        if (!selectedTransfer) return;
+        if (!selectedTransfer) {
+            setRotaDijkstra(null);
+            setRotaGeometricaRuas([]);
+            return;
+        }
 
         if (selectedTransfer.status !== "Em transporte") {
             setRotaDijkstra(null);
@@ -122,14 +128,14 @@ export default function DashboardScreen() {
         return () => {
             ativo = false;
         };
-    }, [selectedTransfer, instituicoesReais]);
+    }, [selectedTransferIndex, transferencias, instituicoesReais]);
 
     const emTransporteTotal = transferencias.filter((t) => t.status === "Em transporte").length;
 
     const kpis = [
         {
             label: "Estoque Total",
-            value: String(totalEstoqueReal || 47),
+            value: String(totalEstoqueReal || 45),
             unit: "unidades",
             sub: "Bolsas ativas na Fila FEFO",
             positive: true,
@@ -161,7 +167,7 @@ export default function DashboardScreen() {
             label: "Em Transporte",
             value: String(emTransporteTotal),
             unit: emTransporteTotal === 1 ? "transferência" : "transferências",
-            sub: "Veículo em deslocamento",
+            sub: "Deslocamentos ativos",
             positive: true,
             icon: <IconTruck size={18} />,
             color: "text-emerald-600",
@@ -171,7 +177,7 @@ export default function DashboardScreen() {
 
     return (
         <div className="px-8 py-7 space-y-5">
-            {/* Cards de Métricas */}
+            {/* Indicadores Principais */}
             <div className="grid grid-cols-4 gap-4">
                 {kpis.map((k, i) => (
                     <div key={i} className="bg-white rounded-xl border border-slate-100 p-5 flex flex-col gap-3 shadow-xs">
@@ -190,7 +196,7 @@ export default function DashboardScreen() {
                 ))}
             </div>
 
-            {/* Mapa + Barra Lateral */}
+            {/* Mapa Logístico e Painel Lateral */}
             <div className="grid grid-cols-3 gap-5" style={{ height: 480 }}>
                 {/* Mapa Leaflet */}
                 <div className="col-span-2 bg-white rounded-xl border border-slate-100 overflow-hidden relative shadow-xs">
@@ -207,7 +213,7 @@ export default function DashboardScreen() {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>Normal
               </span>
                             <span className="flex items-center gap-1.5 text-slate-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></span>Transferência
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></span>Transferência Ativa
               </span>
                         </div>
                     </div>
@@ -225,7 +231,7 @@ export default function DashboardScreen() {
                             attribution="© OpenStreetMap contributors"
                         />
 
-                        {/* Traçado pelas ruas quando 'Em transporte' */}
+                        {/* Rota traçada */}
                         {selectedTransfer && selectedTransfer.status === "Em transporte" && rotaGeometricaRuas.length > 0 && (
                             <>
                                 <Polyline
@@ -251,23 +257,23 @@ export default function DashboardScreen() {
                             </>
                         )}
 
-                        {/* Marcadores das Instituições Reais */}
+                        {/* Marcadores das Instituições Conectadas */}
                         {instituicoesReais.map((inst) => {
                             const lat = Number(inst.latitude);
                             const lng = Number(inst.longitude);
                             if (isNaN(lat) || isNaN(lng)) return null;
 
                             const nome = String(inst.name || inst.nome || "");
-                            const isCritico = nome.includes("Restauração");
-                            const isTransporte = nome.includes("Oswaldo");
+                            const isCritico = nome.includes("Oswaldo");
+                            const isOrigemAtiva = selectedTransfer && selectedTransfer.origemId === inst.id;
 
                             return (
                                 <CircleMarker
                                     key={inst.id}
                                     center={[lat, lng]}
-                                    radius={isCritico ? 13 : 11}
+                                    radius={isCritico ? 13 : isOrigemAtiva ? 12 : 10}
                                     pathOptions={{
-                                        fillColor: isCritico ? "#C8102E" : isTransporte ? "#3B82F6" : "#10B981",
+                                        fillColor: isCritico ? "#C8102E" : isOrigemAtiva ? "#3B82F6" : "#10B981",
                                         fillOpacity: 0.95,
                                         color: "#ffffff",
                                         weight: 2.5,
@@ -284,7 +290,7 @@ export default function DashboardScreen() {
                         })}
                     </MapContainer>
 
-                    {/* Card de Status do Trajeto */}
+                    {/* Painel Inferior de Detalhes da Rota */}
                     <div className="absolute bottom-4 left-4 right-4 z-[500] pointer-events-none">
                         {carregandoRota ? (
                             <div className="bg-white/95 backdrop-blur-sm border border-slate-200 p-3 rounded-xl shadow-lg inline-flex items-center gap-2 text-xs text-slate-600 pointer-events-auto">
@@ -308,6 +314,8 @@ export default function DashboardScreen() {
                                     <span>Distância: <strong className="text-slate-900">{rotaDijkstra.distanciaTotalKm.toFixed(1)} km</strong></span>
                                     <span>•</span>
                                     <span>Previsão: <strong className="text-slate-900">{rotaDijkstra.tempoEstimadoMinutos} min</strong></span>
+                                    <span>•</span>
+                                    <span>Carga: <strong className="text-[#C8102E]">{selectedTransfer.comp} ({selectedTransfer.qty} unid.)</strong></span>
                                 </div>
                             </div>
                         ) : selectedTransfer && selectedTransfer.status === "Em análise" ? (
@@ -317,7 +325,7 @@ export default function DashboardScreen() {
                                     Transferência {selectedTransfer.id} — Em Análise
                                 </div>
                                 <div className="text-xs text-slate-600">
-                                    Aguardando autorização da central. O traçado nas ruas só é exibido após o início do transporte.
+                                    Aguardando autorização da central. O traçado no mapa é exibido com o status &quot;Em transporte&quot;.
                                 </div>
                             </div>
                         ) : selectedTransfer && selectedTransfer.status === "Recusada" ? (
@@ -333,7 +341,7 @@ export default function DashboardScreen() {
                         ) : null}
                     </div>
 
-                    {/* Pop-up do Hospital Clicado */}
+                    {/* Modal Pop-up do Hospital Clicado */}
                     {selectedHospital && (
                         <div className="absolute top-14 left-4 z-[600] bg-white rounded-xl shadow-xl border border-slate-100 p-4 w-72">
                             <div className="flex items-start justify-between gap-2">
@@ -356,7 +364,7 @@ export default function DashboardScreen() {
                     )}
                 </div>
 
-                {/* Coluna Direita: Transferências */}
+                {/* Coluna Direita: Alertas e Relação de Transferências */}
                 <div className="col-span-1 flex flex-col gap-4 overflow-hidden">
                     <div className="bg-white rounded-xl border border-slate-100 p-4 flex-1 overflow-y-auto shadow-xs">
                         <div className="flex items-center justify-between mb-3">
@@ -378,23 +386,23 @@ export default function DashboardScreen() {
 
                     <div className="bg-white rounded-xl border border-slate-100 p-4 flex-1 overflow-y-auto shadow-xs">
                         <div className="flex items-center justify-between mb-2">
-                            <div className="text-[12px] font-semibold text-slate-700">Transferências</div>
+                            <div className="text-[12px] font-semibold text-slate-700">Transferências Ativas</div>
                             <span className="text-[10px] text-slate-400">Clique para inspecionar</span>
                         </div>
                         <div className="space-y-2">
-                            {transferencias.map((t) => {
-                                const isSelected = selectedTransfer?.id === t.id;
+                            {transferencias.map((t, idx) => {
+                                const isSelected = selectedTransferIndex === idx;
                                 return (
                                     <button
-                                        key={t.id}
-                                        onClick={() => setSelectedTransfer(t)}
+                                        key={`${t.id}-${idx}`}
+                                        onClick={() => setSelectedTransferIndex(idx)}
                                         className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-center gap-2 cursor-pointer ${
                                             isSelected
                                                 ? "border-[#C8102E] bg-red-50/40 shadow-xs"
                                                 : "border-slate-100 hover:border-slate-200 bg-white"
                                         }`}
                                     >
-                                        <div className="text-[11px] font-mono font-bold text-slate-400 w-12 flex-shrink-0">
+                                        <div className="text-[11px] font-mono font-bold text-slate-400 w-16 flex-shrink-0 truncate">
                                             {t.id}
                                         </div>
                                         <div className="flex-1 min-w-0">
