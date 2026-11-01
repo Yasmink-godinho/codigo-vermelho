@@ -2,6 +2,13 @@ package com.codigovermelho.controllers;
 
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.enums.TipoInstituicao;
+import com.codigovermelho.models.Requisicao;
+import com.codigovermelho.models.LoteHemocomponente;
+import com.codigovermelho.models.enums.TipoSanguineo;
+import com.codigovermelho.models.enums.TipoComponente;
+import com.codigovermelho.models.enums.NivelUrgencia;
+import com.codigovermelho.repositories.RequisicaoRepository;
+import com.codigovermelho.repositories.LoteHemocomponenteRepository;
 import com.codigovermelho.repositories.InstituicaoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +47,12 @@ class RotasETelemetriaHttpTest {
 
     @Autowired
     private InstituicaoRepository instituicaoRepository;
+
+    @Autowired
+    private RequisicaoRepository requisicaoRepository;
+
+    @Autowired
+    private LoteHemocomponenteRepository loteRepository;
 
     private final HttpClient cliente = HttpClient.newHttpClient();
 
@@ -272,8 +285,13 @@ class RotasETelemetriaHttpTest {
     }
 
     private Resposta criarTransferencia(Instituicao origem, Instituicao destino) {
+        Requisicao requisicao = requisicaoRepository.save(new Requisicao(destino, TipoSanguineo.O_NEGATIVO,
+                TipoComponente.CONCENTRADO_HEMACIAS, 3, NivelUrgencia.EMERGENCIA, "Teste HTTP"));
+        loteRepository.save(new LoteHemocomponente(TipoSanguineo.O_NEGATIVO,
+                TipoComponente.CONCENTRADO_HEMACIAS, java.time.LocalDate.now(), 3, origem));
         return post("/api/v1/transferencias", "{\"origemId\":" + origem.getId() + ",\"destinoId\":" + destino.getId()
-                + ",\"tipoSanguineo\":\"O-\",\"componente\":\"CONCENTRADO_HEMACIAS\",\"quantidade\":3}");
+                + ",\"tipoSanguineo\":\"O-\",\"componente\":\"CONCENTRADO_HEMACIAS\",\"quantidade\":3"
+                + ",\"requisicaoId\":" + requisicao.getId() + "}");
     }
 
     // pega o primeiro "id" do JSON da resposta

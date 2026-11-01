@@ -5,6 +5,7 @@ import com.codigovermelho.controllers.dto.RotaResultado;
 import com.codigovermelho.exceptions.RegraDeNegocioException;
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.Transferencia;
+import com.codigovermelho.models.Requisicao;
 import com.codigovermelho.repositories.InstituicaoRepository;
 import com.codigovermelho.repositories.TransferenciaRepository;
 import org.springframework.stereotype.Service;
@@ -22,21 +23,28 @@ public class TransferenciaService {
     private final TransferenciaRepository transferenciaRepository;
     private final InstituicaoRepository instituicaoRepository;
     private final RotaService rotaService;
+    private final AlocacaoCompatibilidadeService alocacaoCompatibilidadeService;
 
     public TransferenciaService(TransferenciaRepository transferenciaRepository,
                                 InstituicaoRepository instituicaoRepository,
-                                RotaService rotaService) {
+                                RotaService rotaService,
+                                AlocacaoCompatibilidadeService alocacaoCompatibilidadeService) {
         this.transferenciaRepository = transferenciaRepository;
         this.instituicaoRepository = instituicaoRepository;
         this.rotaService = rotaService;
+        this.alocacaoCompatibilidadeService = alocacaoCompatibilidadeService;
     }
 
     @Transactional
     public Transferencia criar(NovaTransferenciaRequest request) {
+        // 1) Valida requisicao, destino e compatibilidade (409 se incompativel) SEM alterar nada.
+        Requisicao requisicao = alocacaoCompatibilidadeService.validarParaTransferencia(
+                request.requisicaoId(), request.origemId(), request.destinoId(), request.tipoSanguineo(),
+                request.componente(), request.quantidade());
+
+        // 2) Confirma a rota (US05) antes de tocar no estoque: sem rota -> RegraDeNegocioException (409).
         RotaResultado rota = rotaService.calcularRota(request.origemId(), request.destinoId());
-        if (!rota.rotaEncontrada()) {
-            throw new RegraDeNegocioException(rota.mensagem());
-        }
+        if (!rota.rotaEncontrada()) throw new RegraDeNegocioException(rota.mensagem());
 
         Instituicao origem = instituicaoRepository.findById(request.origemId())
                 .orElseThrow(() -> new NoSuchElementException("Instituicao nao encontrada: " + request.origemId()));
@@ -45,9 +53,13 @@ public class TransferenciaService {
 
         String percurso = String.join(" -> ", rota.nomesInstituicoes());
         LocalDateTime chegada = LocalDateTime.now().plusMinutes(Math.round(rota.tempoEstimadoMinutos()));
-
-        Transferencia transferencia = new Transferencia(origem, destino, request.tipoSanguineo(),
+        Transferencia transferencia = new Transferencia(origem, destino, requisicao, request.tipoSanguineo(),
                 request.componente(), request.quantidade(), percurso, rota.distanciaTotalKm(), chegada);
+
+        // 3) So agora reserva o estoque (FEFO) e atende a requisicao; tudo na mesma transacao da transferencia,
+        //    entao qualquer falha daqui em diante reverte estoque, status da requisicao e a transferencia.
+        alocacaoCompatibilidadeService.consumirEstoque(requisicao, request.origemId(), request.tipoSanguineo(),
+                request.componente(), request.quantidade());
         return transferenciaRepository.save(transferencia);
     }
 

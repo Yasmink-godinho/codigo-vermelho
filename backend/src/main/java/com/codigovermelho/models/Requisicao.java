@@ -7,6 +7,7 @@ import com.codigovermelho.models.enums.TipoSanguineo;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Requisicao hospitalar de hemocomponente (US04): emitida por uma
@@ -77,7 +78,10 @@ public class Requisicao {
     private void aoPersistir() {
         this.dataCriacao = LocalDateTime.now();
         if (this.codigoRequisicao == null) {
-            this.codigoRequisicao = "REQ-" + System.currentTimeMillis();
+            // Timestamp sozinho colidia quando duas requisicoes eram gravadas no mesmo milissegundo
+            // (coluna unica). O sufixo aleatorio garante unicidade e mantem o prefixo REQ-<timestamp>.
+            this.codigoRequisicao = "REQ-" + System.currentTimeMillis() + "-"
+                    + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         }
     }
 

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 public record TransferenciaResponse(
         Long id,
         String codigo,
+        Long origemId,
+        Long destinoId,
         String instituicaoOrigem,
         String instituicaoDestino,
         String tipoSanguineo,
@@ -23,6 +25,8 @@ public record TransferenciaResponse(
         return new TransferenciaResponse(
                 t.getId(),
                 t.getCodigo(),
+                t.getOrigem().getId(),
+                t.getDestino().getId(),
                 t.getOrigem().getNome(),
                 t.getDestino().getNome(),
                 t.getTipoSanguineo().getLabel(),

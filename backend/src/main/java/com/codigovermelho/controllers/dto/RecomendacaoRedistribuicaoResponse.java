@@ -4,6 +4,8 @@ import java.util.List;
 
 public class RecomendacaoRedistribuicaoResponse {
     private Long id;
+    private Long requisicaoId;
+    private String tipoRequisicao;
     private Long origemId;
     private String origemNome;
     private Long destinoId;
@@ -18,11 +20,14 @@ public class RecomendacaoRedistribuicaoResponse {
 
     public RecomendacaoRedistribuicaoResponse() {}
 
-    public RecomendacaoRedistribuicaoResponse(Long id, Long origemId, String origemNome, Long destinoId,
+    public RecomendacaoRedistribuicaoResponse(Long id, Long requisicaoId, String tipoRequisicao,
+                                              Long origemId, String origemNome, Long destinoId,
                                               String destinoNome, String tipoSanguineo, String componente,
                                               int quantidade, String nivelUrgencia, String status,
                                               String justificativaRecusa, List<String> motivosExplicaveis) {
         this.id = id;
+        this.requisicaoId = requisicaoId;
+        this.tipoRequisicao = tipoRequisicao;
         this.origemId = origemId;
         this.origemNome = origemNome;
         this.destinoId = destinoId;
@@ -37,6 +42,10 @@ public class RecomendacaoRedistribuicaoResponse {
     }
 
     public Long getId() { return id; }
+    public Long getRequisicaoId() { return requisicaoId; }
+    public void setRequisicaoId(Long requisicaoId) { this.requisicaoId = requisicaoId; }
+    public String getTipoRequisicao() { return tipoRequisicao; }
+    public void setTipoRequisicao(String tipoRequisicao) { this.tipoRequisicao = tipoRequisicao; }
     public void setId(Long id) { this.id = id; }
 
     public Long getOrigemId() { return origemId; }

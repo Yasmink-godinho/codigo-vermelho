@@ -2,7 +2,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080
 
 // ─── Chaves de Armazenamento Local ───────────────────────────────────────────
 const LOTES_STORAGE_KEY = "codigo_vermelho_lotes_custom";
-const TRANSFERENCIAS_STORAGE_KEY = "codigo_vermelho_transferencias";
 const INSTITUICOES_STORAGE_KEY = "codigo_vermelho_instituicoes_custom";
 const REQUISICOES_STORAGE_KEY = "codigo_vermelho_requisicoes_custom";
 
@@ -418,57 +417,8 @@ export async function getFilaFEFO(): Promise<any[]> {
     quantidade: Number(l.quantity ?? l.quantidade ?? 0),
   }));
 
-  // 2. Abate automático das transferências manuais aprovadas/ativas (Ponto 2)
-  const transferencias = getTransferenciasLocais();
-  const transferenciasManuaisAtivas = transferencias.filter(
-      (t) =>
-          !String(t.id).startsWith("#RED-") &&
-          String(t.id) !== "#1029" &&
-          t.status !== "Recusada" &&
-          t.status !== "Cancelada"
-  );
-
-  for (const t of transferenciasManuaisAtivas) {
-    const origemId = obterIdInstituicao(t.origemId, t.from);
-    const sangueTrf = normalizarSiglaSangue(t.comp);
-    let restante = Number(t.qty || 0);
-
-    if (origemId > 0 && restante > 0) {
-      // Ordena por validade FEFO para consumir as mais antigas primeiro
-      lotesCopia.sort((a, b) => {
-        const da = new Date(a.expiryDate || a.validade || a.dataValidade || "2099-12-31").getTime();
-        const db = new Date(b.expiryDate || b.validade || b.dataValidade || "2099-12-31").getTime();
-        return da - db;
-      });
-
-      for (const lote of lotesCopia) {
-        if (restante <= 0) break;
-        const loteInstId = obterIdInstituicao(
-            lote.instId || lote.instituicaoId,
-            lote.instName || lote.instituicaoNome
-        );
-        const loteSangue = normalizarSiglaSangue(lote.bloodType || lote.tipoSanguineo);
-
-        const mesmoHospital = loteInstId === origemId;
-        const mesmoSangue =
-            loteSangue === sangueTrf ||
-            (loteSangue && sangueTrf && (loteSangue.includes(sangueTrf) || sangueTrf.includes(loteSangue)));
-
-        if (mesmoHospital && mesmoSangue) {
-          const qtdAtual = Number(lote.quantity ?? lote.quantidade ?? 0);
-          if (qtdAtual <= restante) {
-            restante -= qtdAtual;
-            lote.quantity = 0;
-            lote.quantidade = 0;
-          } else {
-            lote.quantity = qtdAtual - restante;
-            lote.quantidade = lote.quantity;
-            restante = 0;
-          }
-        }
-      }
-    }
-  }
+  // O estoque retornado pelo backend já reflete as transferências persistidas.
+  // Não reaplicamos débitos locais para evitar descontar a mesma movimentação duas vezes.
 
   // Retorna os lotes válidos com saldo > 0 ordenados pela regra FEFO
   return lotesCopia
@@ -571,58 +521,52 @@ export const criarLoteApi = cadastrarLoteApi;
 
 // ─── 3. Transferências Compartilhadas ─────────────────────────────────────────
 
-const TRANSFERENCIA_PADRAO: TransferenciaAPI[] = [
-  {
-    id: "#1029",
-    from: "Fundação HEMOPE",
-    to: "Hospital Universitário Oswaldo Cruz",
-    origemId: 1,
-    destinoId: 3,
-    comp: "O-",
-    qty: 2,
-    status: "Em transporte",
-    departure: "09:04",
-    eta: "09:52",
-    temperature: "4,2°C",
-    route: "Via Av. Gov. Agamenon Magalhães — 2,5 km",
-    carrier: "LogMed Express — Veículo L-412",
-    operationStatus: "Normal",
-    notes: "Transferência autorizada. Contêiner lacrado em temperatura estável.",
-    timeline: [
-      { label: "Solicitação", done: true, active: false, time: "08:12" },
-      { label: "Análise", done: true, active: false, time: "08:19" },
-      { label: "Aprovada", done: true, active: false, time: "08:31" },
-      { label: "Em transporte", done: true, active: true, time: "09:04" },
-      { label: "Entregue", done: false, active: false, time: "—" },
-    ],
-    history: [
-      { time: "08:12", event: "Solicitação gerada" },
-      { time: "09:04", event: "Veículo em trânsito com rota otimizada" },
-    ],
-  },
-];
-
-export function getTransferenciasLocais(): TransferenciaAPI[] {
-  try {
-    const salvos = localStorage.getItem(TRANSFERENCIAS_STORAGE_KEY);
-    if (salvos) {
-      const parsed = JSON.parse(salvos);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {}
-  return TRANSFERENCIA_PADRAO;
-}
-
-export function salvarTransferenciasLocais(lista: TransferenciaAPI[]) {
-  try {
-    localStorage.setItem(TRANSFERENCIAS_STORAGE_KEY, JSON.stringify(lista));
-    window.dispatchEvent(new Event("storage"));
-  } catch (e) {}
-}
-
 export const buscarTransferenciasApi = async (): Promise<TransferenciaAPI[]> => {
-  return getTransferenciasLocais();
+  const response = await fetch(`${API_BASE_URL}/transferencias`, { headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`Falha ao carregar transferências (${response.status})`);
+  const rows = await response.json();
+  return rows.map((t: any): TransferenciaAPI => ({
+    id: String(t.codigo || t.id), from: t.instituicaoOrigem, to: t.instituicaoDestino,
+    origemId: Number(t.origemId), destinoId: Number(t.destinoId),
+    comp: t.tipoSanguineo, qty: Number(t.quantidade || 0),
+    status: t.statusTransferencia === "ENTREGUE" ? "Entregue" : "Em transporte",
+    departure: t.dataCriacao ? new Date(t.dataCriacao).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—",
+    eta: t.previsaoChegada ? new Date(t.previsaoChegada).toLocaleString("pt-BR") : "—",
+    temperature: "Sem leitura de temperatura", route: t.rota || "—", carrier: "LogMed Express",
+    operationStatus: t.statusTransferencia || "—", notes: `Transferência registrada no backend · ${t.distanciaKm ?? "—"} km`,
+    timeline: [
+      { label: "Solicitação", done: true, active: false, time: "Registrada" },
+      { label: "Análise", done: true, active: false, time: "Concluída" },
+      { label: "Aprovada", done: true, active: false, time: "Concluída" },
+      { label: "Em transporte", done: t.statusTransferencia === "EM_TRANSPORTE", active: t.statusTransferencia === "EM_TRANSPORTE", time: "—" },
+      { label: "Entregue", done: t.statusTransferencia === "ENTREGUE", active: false, time: "—" },
+    ], history: [{ time: "Backend", event: "Registro persistido no banco de dados" }],
+  }));
 };
+
+export interface AlternativaCompatibilidadeAPI {
+  loteId: number; codigoLote: string; tipoSanguineo: string; componente: string;
+  quantidade: number; validade: string; instituicaoId: number; instituicaoNome: string;
+  quantidadeSuficiente: boolean;
+}
+export interface AvaliacaoCompatibilidadeAPI {
+  compativel: boolean; alocacaoBloqueada: boolean; motivo: string;
+  requisicaoId: number | null; tipoRequisicao: string; tipoLote: string;
+  alternativas: AlternativaCompatibilidadeAPI[];
+}
+export async function avaliarCompatibilidadeAlocacaoApi(
+    tipoRequisicao: string, tipoLote: string, componente: string, quantidade?: number
+): Promise<AvaliacaoCompatibilidadeAPI> {
+  const params = new URLSearchParams({
+    tipoRequisicao: normalizarTipoSanguineo(tipoRequisicao),
+    tipoLote: normalizarTipoSanguineo(tipoLote),
+    componente: normalizarComponente(componente),
+  });
+  if (quantidade) params.set("quantidade", String(quantidade));
+  const response = await fetch(`${API_BASE_URL}/compatibilidade/alocacao/tipos?${params}`);
+  if (!response.ok) throw new Error(`Falha ao validar compatibilidade (${response.status})`);
+  return response.json();
+}
 
 // ─── 4. Cálculo de Rota Dijkstra (US05) ────────────────────────────────────────
 
@@ -817,4 +761,21 @@ export async function buscarTelemetriaApi(transferenciaId?: number | string): Pr
     console.warn("Backend offline ao buscar telemetria.");
   }
   return [];
+}
+
+// ─── US10: monitoramento real da API ─────────────────────────────────────────
+export interface RedeStatusAPI {
+  geradoEm: string; iniciadoEm: string; uptimeSegundos: number; janelaSegundos: number;
+  requisicoes: number; erros: number; latenciaMediaMs: number; throughputReqPorSegundo: number;
+  taxaErroPercentual: number; limiteTaxaErroPercentual: number; statusGeral: string;
+  endpointsEmAlerta: number;
+  endpoints: Array<{ metodo: string; caminho: string; critico: boolean; status: string; alerta: boolean;
+    requisicoes: number; erros: number; latenciaMediaMs: number; taxaErroPercentual: number;
+    ultimaAmostra: string | null; origemStatus: string; sondas: number; errosSonda: number; ultimaSonda: string | null }>;
+  componentes: Array<{ nome: string; status: string; latenciaMs: number; detalhe: string }>;
+}
+export async function getRedeStatusApi(): Promise<RedeStatusAPI> {
+  const response = await fetch(`${API_BASE_URL}/rede/status`, { headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`Falha ao consultar monitoramento (${response.status})`);
+  return response.json();
 }

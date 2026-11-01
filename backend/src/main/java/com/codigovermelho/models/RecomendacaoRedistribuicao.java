@@ -17,6 +17,10 @@ public class RecomendacaoRedistribuicao {
     private String origemNome;
     private Long destinoId;
     private String destinoNome;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "requisicao_id")
+    private Requisicao requisicao;
     private String tipoSanguineo;
     private String componente;
     private int quantidade;
@@ -54,6 +58,16 @@ public class RecomendacaoRedistribuicao {
         this.dataCriacao = LocalDateTime.now();
     }
 
+    public RecomendacaoRedistribuicao(Requisicao requisicao, Long origemId, String origemNome, Long destinoId,
+                                      String destinoNome, String tipoSanguineo, String componente,
+                                      int quantidade, String nivelUrgencia, String status,
+                                      List<String> motivosExplicaveis) {
+        this(origemId, origemNome, destinoId, destinoNome, tipoSanguineo, componente,
+                quantidade, nivelUrgencia, status, motivosExplicaveis);
+        if (requisicao == null) throw new IllegalArgumentException("Requisicao vinculada e obrigatoria para nova recomendacao.");
+        this.requisicao = requisicao;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -64,6 +78,8 @@ public class RecomendacaoRedistribuicao {
     public void setOrigemNome(String origemNome) { this.origemNome = origemNome; }
 
     public Long getDestinoId() { return destinoId; }
+    public Requisicao getRequisicao() { return requisicao; }
+    public void setRequisicao(Requisicao requisicao) { this.requisicao = requisicao; }
     public void setDestinoId(Long destinoId) { this.destinoId = destinoId; }
 
     public String getDestinoNome() { return destinoNome; }
