@@ -1,6 +1,7 @@
 package com.codigovermelho.controllers.advice;
 
 import com.codigovermelho.exceptions.RegraDeNegocioException;
+import com.codigovermelho.exceptions.AlocacaoIncompativelException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -50,6 +51,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleParametroInvalido(MethodArgumentTypeMismatchException ex) {
         return erro(HttpStatus.BAD_REQUEST, "Valor invalido para o parametro: " + ex.getName());
+    }
+
+    @ExceptionHandler(AlocacaoIncompativelException.class)
+    public ResponseEntity<Map<String, Object>> handleAlocacaoIncompativel(AlocacaoIncompativelException ex) {
+        Map<String, Object> corpo = new LinkedHashMap<>();
+        corpo.put("timestamp", LocalDateTime.now());
+        corpo.put("status", HttpStatus.CONFLICT.value());
+        corpo.put("erro", HttpStatus.CONFLICT.getReasonPhrase());
+        corpo.put("mensagem", ex.getMessage());
+        corpo.put("alternativas", ex.getAlternativas());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(corpo);
     }
 
     @ExceptionHandler(RegraDeNegocioException.class)

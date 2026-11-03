@@ -6,13 +6,18 @@ import com.codigovermelho.exceptions.RegraDeNegocioException;
 import com.codigovermelho.models.AlertaTermico;
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.LeituraTelemetria;
+import com.codigovermelho.models.LoteHemocomponente;
 import com.codigovermelho.models.Transferencia;
 import com.codigovermelho.models.enums.NivelAlerta;
+import com.codigovermelho.models.enums.NivelUrgencia;
+import com.codigovermelho.models.Requisicao;
+import com.codigovermelho.repositories.RequisicaoRepository;
 import com.codigovermelho.models.enums.StatusTransferencia;
 import com.codigovermelho.models.enums.TipoComponente;
 import com.codigovermelho.models.enums.TipoInstituicao;
 import com.codigovermelho.models.enums.TipoSanguineo;
 import com.codigovermelho.repositories.InstituicaoRepository;
+import com.codigovermelho.repositories.LoteHemocomponenteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +54,18 @@ class TelemetriaServiceTest {
     @Autowired
     private InstituicaoRepository instituicaoRepository;
 
+    @Autowired
+    private RequisicaoRepository requisicaoRepository;
+
+    @Autowired
+    private LoteHemocomponenteRepository loteRepository;
+
     private Instituicao origem;
     private Instituicao destino;
     private Instituicao isolada;
     private Transferencia transferencia;
+    private Requisicao requisicaoDestino;
+    private Requisicao requisicaoIsolada;
 
     @BeforeEach
     void criarTransferenciaEmTransporte() {
@@ -63,10 +76,16 @@ class TelemetriaServiceTest {
         isolada = instituicaoRepository.save(new Instituicao(
                 "Tel Isolada", TipoInstituicao.HOSPITAL_PUBLICO, "Endereco de teste", -8.2760, -35.9760));
         ligacaoService.criar(new NovaLigacaoRequest(origem.getId(), destino.getId()));
+        requisicaoDestino = requisicaoRepository.save(new Requisicao(destino, TipoSanguineo.O_NEGATIVO,
+                TipoComponente.CONCENTRADO_HEMACIAS, 3, NivelUrgencia.EMERGENCIA, "Teste US07"));
+        requisicaoIsolada = requisicaoRepository.save(new Requisicao(isolada, TipoSanguineo.A_POSITIVO,
+                TipoComponente.PLASMA, 2, NivelUrgencia.EMERGENCIA, "Teste rota inexistente"));
+        loteRepository.save(new LoteHemocomponente(TipoSanguineo.O_NEGATIVO,
+                TipoComponente.CONCENTRADO_HEMACIAS, java.time.LocalDate.now(), 3, origem));
 
         transferencia = transferenciaService.criar(new NovaTransferenciaRequest(
                 origem.getId(), destino.getId(), TipoSanguineo.O_NEGATIVO,
-                TipoComponente.CONCENTRADO_HEMACIAS, 3));
+                TipoComponente.CONCENTRADO_HEMACIAS, 3, requisicaoDestino.getId()));
     }
 
     // ---------- criacao da transferencia com a rota (US05) ----------
@@ -85,7 +104,7 @@ class TelemetriaServiceTest {
     void naoCriaTransferenciaQuandoNaoExisteRota() {
         RegraDeNegocioException erro = assertThrows(RegraDeNegocioException.class,
                 () -> transferenciaService.criar(new NovaTransferenciaRequest(
-                        origem.getId(), isolada.getId(), TipoSanguineo.A_POSITIVO, TipoComponente.PLASMA, 2)));
+                        origem.getId(), isolada.getId(), TipoSanguineo.A_POSITIVO, TipoComponente.PLASMA, 2, requisicaoIsolada.getId())));
         assertTrue(erro.getMessage().contains("Nao ha rota disponivel"));
     }
 

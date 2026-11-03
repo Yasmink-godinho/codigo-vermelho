@@ -29,30 +29,29 @@ public class RedistribuicaoController {
     }
 
     @PostMapping("/{id}/aprovar")
-    public ResponseEntity<Map<String, Object>> aprovarRedistribuicao(@PathVariable Long id) {
-        Optional<RecomendacaoRedistribuicaoResponse> opt = redistribuicaoService.aprovar(id);
-        if (opt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Map<String, Object>> aprovarRedistribuicao(
+            @PathVariable Long id, @RequestBody(required = false) Map<String, Long> body) {
+        Long loteAlternativoId = body == null ? null : body.get("loteId");
+        var opt = redistribuicaoService.aprovarComTransferencia(id, loteAlternativoId);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
-        RecomendacaoRedistribuicaoResponse rec = opt.get();
-
-        // Gera ID único baseado no identificador e timestamp para evitar duplicações no Dashboard
-        String idTransferenciaUnico = "#RED-" + rec.getId() + "-" + (System.currentTimeMillis() % 1000);
+        RecomendacaoRedistribuicaoResponse rec = opt.get().recomendacao();
+        var transferencia = opt.get().transferencia();
 
         Map<String, Object> resposta = new HashMap<>();
         resposta.put("sucesso", true);
         resposta.put("status", "APROVADA");
         resposta.put("mensagem", "Recomendação aprovada com sucesso. Estoque atualizado e transferência despachada.");
         resposta.put("transferenciaCriada", Map.of(
-                "id", idTransferenciaUnico,
+                "id", transferencia.getId(),
+                "codigo", transferencia.getCodigo(),
                 "origemId", rec.getOrigemId(),
                 "from", rec.getOrigemNome(),
                 "destinoId", rec.getDestinoId(),
                 "to", rec.getDestinoNome(),
                 "comp", rec.getTipoSanguineo(),
                 "qty", rec.getQuantidade(),
-                "status", "Em transporte"
+                "status", transferencia.getStatus().name()
         ));
 
         return ResponseEntity.ok(resposta);

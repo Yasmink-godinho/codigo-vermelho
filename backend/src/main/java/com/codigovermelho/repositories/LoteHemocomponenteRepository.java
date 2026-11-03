@@ -3,6 +3,10 @@ package com.codigovermelho.repositories;
 import com.codigovermelho.models.LoteHemocomponente;
 import com.codigovermelho.models.enums.TipoSanguineo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +28,10 @@ public interface LoteHemocomponenteRepository extends JpaRepository<LoteHemocomp
     List<LoteHemocomponente> findByInstituicaoId(Long instituicaoId);
 
     List<LoteHemocomponente> findByInstituicaoIdAndTipoSanguineo(Long instituicaoId, TipoSanguineo tipoSanguineo);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LoteHemocomponente l where l.instituicao.id = :instituicaoId and l.tipoSanguineo = :tipo order by l.dataValidade asc")
+    List<LoteHemocomponente> bloquearEstoqueFefo(@Param("instituicaoId") Long instituicaoId, @Param("tipo") TipoSanguineo tipo);
 
     /**
      * Lotes ja vencidos ou vencendo ate uma data limite — usado no alerta

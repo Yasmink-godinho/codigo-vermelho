@@ -7,8 +7,7 @@ import {
     IconThermometer, IconTruck, IconAlertTriangle, IconPlus, IconX
 } from "@/components/icons";
 import {
-    getInstituicoes, getFilaFEFO, calcularRotaApi, RotaAPI,
-    getTransferenciasLocais, salvarTransferenciasLocais, TransferenciaAPI
+    getInstituicoes, getFilaFEFO, calcularRotaApi, buscarTransferenciasApi, TransferenciaAPI, RotaAPI
 } from "@/data/api";
 
 export function InfoCell({ icon, label, value, mono = false, good = false }: {
@@ -62,7 +61,9 @@ export default function TransferenciasScreen() {
             if (Array.isArray(lotes)) setLotesEstoque(lotes);
         });
 
-        setTransferencias(getTransferenciasLocais());
+        buscarTransferenciasApi()
+            .then(setTransferencias)
+            .catch((erro) => console.error("Falha ao carregar transferências do backend:", erro));
     }, []);
 
     useEffect(() => {
@@ -156,7 +157,6 @@ export default function TransferenciasScreen() {
 
         const listaAtualizada = [novaTransferencia, ...transferencias];
         setTransferencias(listaAtualizada);
-        salvarTransferenciasLocais(listaAtualizada);
         setModalAberto(false);
     }
 
@@ -181,7 +181,7 @@ export default function TransferenciasScreen() {
         });
 
         setTransferencias(atualizada);
-        salvarTransferenciasLocais(atualizada);
+        setTransferencias(atualizada);
     }
 
     const selected = selectedId ? transferencias.find((t) => t.id === selectedId) ?? null : null;
@@ -283,10 +283,11 @@ export default function TransferenciasScreen() {
                 </div>
 
                 <button
-                    onClick={() => setModalAberto(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#C8102E] hover:bg-[#A00D24] text-white text-[13px] font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+                    disabled
+                    title="As transferências são criadas após a validação e aprovação de uma requisição na tela de Redistribuições."
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-500 text-[13px] font-semibold rounded-lg cursor-not-allowed"
                 >
-                    <IconPlus size={16} /> Nova Transferência
+                    <IconPlus size={16} /> Geradas por requisições
                 </button>
             </div>
 

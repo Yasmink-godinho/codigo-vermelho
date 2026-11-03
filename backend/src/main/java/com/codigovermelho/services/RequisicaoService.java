@@ -84,6 +84,12 @@ public class RequisicaoService {
     @Transactional
     public Requisicao atualizarStatus(Long id, AtualizarRequisicaoRequest request) {
         Requisicao requisicao = buscarPorId(id);
+        if (request.status() == StatusRequisicao.ATENDIDA) {
+            throw new IllegalArgumentException("Uma requisicao so pode ser marcada como ATENDIDA pela criacao transacional de uma transferencia compativel.");
+        }
+        if (requisicao.getStatus() == StatusRequisicao.ATENDIDA) {
+            throw new IllegalArgumentException("Uma requisicao ATENDIDA nao pode ter seu status alterado.");
+        }
         requisicao.setStatus(request.status());
         return requisicaoRepository.save(requisicao);
     }

@@ -9,16 +9,15 @@ import {
 import { InfoCell } from "@/pages/Transferencias";
 import CompatibilidadeScreen from "@/pages/VerificacaoCompatibilidade";
 import {
-    getTransferenciasLocais,
-    salvarTransferenciasLocais,
-    getFilaFEFO,
-    TransferenciaAPI
+    getFilaFEFO
 } from "@/data/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
 
 interface RecomendacaoItem {
     id: number;
+    requisicaoId?: number;
+    tipoRequisicao?: string;
     origemId: number;
     origemNome: string;
     destinoId: number;
@@ -90,56 +89,23 @@ export default function RedistribuicoesScreen() {
         }
     };
 
-    const handleAprovar = async (id: number) => {
+    const handleAprovar = async (id: number, loteId?: number): Promise<boolean> => {
         try {
-            const res = await fetch(`${API_BASE_URL}/redistribuicoes/${id}/aprovar`, { method: "POST" });
-            if (res.ok) {
-                const data = await res.json();
-
-                if (data.transferenciaCriada) {
-                    const tInfo = data.transferenciaCriada;
-                    const transferenciasAtuais = getTransferenciasLocais();
-
-                    const novaTransferencia: TransferenciaAPI = {
-                        id: tInfo.id,
-                        from: tInfo.from,
-                        to: tInfo.to,
-                        origemId: Number(tInfo.origemId || 1),
-                        destinoId: Number(tInfo.destinoId || 2),
-                        comp: tInfo.comp,
-                        qty: Number(tInfo.qty || 2),
-                        status: "Em transporte",
-                        departure: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                        eta: "Em 35 min",
-                        temperature: "4,0°C",
-                        route: "Via Av. Gov. Agamenon Magalhães — 2,1 km",
-                        carrier: "LogMed Express — Veículo L-412",
-                        operationStatus: "Normal",
-                        notes: "Transferência autorizada pela Gestora (US09). Bolsas retiradas da fila FEFO com sucesso.",
-                        timeline: [
-                            { label: "Solicitação", done: true, active: false, time: "Agora" },
-                            { label: "Análise IA", done: true, active: false, time: "Agora" },
-                            { label: "Aprovada", done: true, active: false, time: "Agora" },
-                            { label: "Em transporte", done: true, active: true, time: "Agora" },
-                            { label: "Entregue", done: false, active: false, time: "—" },
-                        ],
-                        history: [
-                            { time: "Agora", event: "Recomendação autorizada. Estoque da origem debitado." },
-                        ],
-                    };
-
-                    const listaAtualizada = [
-                        novaTransferencia,
-                        ...transferenciasAtuais.filter((t) => t.id !== novaTransferencia.id),
-                    ];
-                    salvarTransferenciasLocais(listaAtualizada);
-                }
-
-                await carregarDados();
-                if (detailItem?.id === id) setDetailItem(null);
+            const res = await fetch(`${API_BASE_URL}/redistribuicoes/${id}/aprovar`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(loteId ? { loteId } : {}),
+            });
+            if (!res.ok) {
+                const erro = await res.json().catch(() => null);
+                throw new Error(erro?.mensagem || erro?.message || `Falha ao aprovar (${res.status})`);
             }
+            await carregarDados();
+            if (detailItem?.id === id) setDetailItem(null);
+            return true;
         } catch (e) {
-            console.error("Falha ao aprovar recomendação:", e);
+            alert(e instanceof Error ? e.message : "Falha ao aprovar recomendação.");
+            return false;
         }
     };
 
@@ -167,6 +133,9 @@ export default function RedistribuicoesScreen() {
             to: item.destinoNome,
             comp: item.tipoSanguineo,
             requestedComp: receptorSanguineo,
+            tipoRequisicao: item.tipoRequisicao,
+            componente: item.componente,
+            requisicaoId: item.requisicaoId,
             qty: item.quantidade,
             urgency: item.nivelUrgencia,
             stockFrom: calcularEstoque(item.origemId, item.tipoSanguineo),
@@ -177,9 +146,8 @@ export default function RedistribuicoesScreen() {
             <CompatibilidadeScreen
                 rec={recCompatAdapter as any}
                 onBack={() => setCompatItem(null)}
-                onConfirm={async () => {
-                    await handleAprovar(item.id);
-                    setCompatItem(null);
+                onConfirm={async (loteId) => {
+                    if (await handleAprovar(item.id, loteId)) setCompatItem(null);
                 }}
             />
         );
@@ -250,7 +218,7 @@ export default function RedistribuicoesScreen() {
                                 {detailItem.status === "PENDENTE" ? (
                                     <>
                                         <button
-                                            onClick={() => setCompatItem({ item: detailItem, receptorSanguineo: detailItem.tipoSanguineo })}
+                                            onClick={() => setCompatItem({ item: detailItem, receptorSanguineo: detailItem.tipoRequisicao || "" })}
                                             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[13px] font-medium hover:bg-slate-50 transition-colors cursor-pointer"
                                         >
                                             <IconShieldCheck size={14} /> Verificar Compatibilidade
@@ -262,7 +230,7 @@ export default function RedistribuicoesScreen() {
                                             <IconX size={14} /> Recusar redistribuição
                                         </button>
                                         <button
-                                            onClick={() => handleAprovar(detailItem.id)}
+                                            onClick={() => setCompatItem({ item: detailItem, receptorSanguineo: detailItem.tipoRequisicao || "" })}
                                             className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#C8102E] text-white text-[13px] font-semibold hover:bg-[#a00d24] transition-colors cursor-pointer"
                                         >
                                             <IconCheck size={14} /> Aprovar redistribuição
@@ -426,7 +394,7 @@ export default function RedistribuicoesScreen() {
                                                     <IconEye size={14} /> Ver detalhes
                                                 </button>
                                                 <button
-                                                    onClick={() => setCompatItem({ item: rec, receptorSanguineo: rec.tipoSanguineo })}
+                                                    onClick={() => setCompatItem({ item: rec, receptorSanguineo: rec.tipoRequisicao || "" })}
                                                     className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-[12px] font-medium hover:bg-slate-50 transition-colors cursor-pointer"
                                                 >
                                                     <IconShieldCheck size={14} /> Verificar Compatibilidade
@@ -438,7 +406,7 @@ export default function RedistribuicoesScreen() {
                                                     <IconX size={14} /> Recusar
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAprovar(rec.id)}
+                                                    onClick={() => setCompatItem({ item: rec, receptorSanguineo: rec.tipoRequisicao || "" })}
                                                     className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#C8102E] text-white text-[12px] font-semibold hover:bg-[#a00d24] transition-colors cursor-pointer"
                                                 >
                                                     <IconCheck size={14} /> Aprovar

@@ -7,8 +7,8 @@ import {
     IconHospital, IconMapPin, IconTruck, IconX, IconCheck, IconAlertTriangle
 } from "@/components/icons";
 import {
-    getInstituicoes, getFilaFEFO, calcularRotaApi,
-    getTransferenciasLocais, RotaAPI, TransferenciaAPI
+    getInstituicoes, getFilaFEFO, calcularRotaApi, buscarTransferenciasApi,
+    RotaAPI, TransferenciaAPI
 } from "@/data/api";
 
 function CentralizarMapa({ lat, lng }: { lat: number; lng: number }) {
@@ -31,7 +31,7 @@ export default function DashboardScreen() {
     const [rotaGeometricaRuas, setRotaGeometricaRuas] = useState<[number, number][]>([]);
     const [carregandoRota, setCarregandoRota] = useState<boolean>(false);
 
-    // 1. Carrega dados atualizados da rede e transferências locais
+    // 1. Carrega dados atualizados da rede e transferências persistidas no backend
     useEffect(() => {
         getInstituicoes().then((insts) => {
             if (Array.isArray(insts) && insts.length > 0) {
@@ -46,11 +46,12 @@ export default function DashboardScreen() {
             }
         });
 
-        const lista = getTransferenciasLocais();
-        setTransferencias(lista);
-        if (lista.length > 0) {
-            setSelectedTransferIndex(0);
-        }
+        buscarTransferenciasApi()
+            .then((lista) => {
+                setTransferencias(lista);
+                setSelectedTransferIndex(0);
+            })
+            .catch((erro) => console.error("Falha ao carregar transferências reais:", erro));
     }, []);
 
     const selectedTransfer = transferencias[selectedTransferIndex] || null;

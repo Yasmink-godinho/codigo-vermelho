@@ -43,6 +43,10 @@ public class Transferencia {
     @JoinColumn(name = "destino_id", nullable = false)
     private Instituicao destino;
 
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "requisicao_id", nullable = true)
+    private Requisicao requisicao;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoSanguineo tipoSanguineo;
@@ -78,43 +82,44 @@ public class Transferencia {
     public Transferencia(Instituicao origem, Instituicao destino, TipoSanguineo tipoSanguineo,
                          TipoComponente componente, Integer quantidade, String rota,
                          Double distanciaKm, LocalDateTime previsaoChegada) {
-        if (origem == null || destino == null) {
-            throw new IllegalArgumentException("Origem e destino sao obrigatorios");
-        }
-        if (origem.getId() != null && origem.getId().equals(destino.getId())) {
-            throw new IllegalArgumentException("Origem e destino devem ser instituicoes diferentes");
-        }
-        if (tipoSanguineo == null) {
-            throw new IllegalArgumentException("Tipo sanguineo e obrigatorio");
-        }
-        if (componente == null) {
-            throw new IllegalArgumentException("Componente e obrigatorio");
-        }
-        if (quantidade == null || quantidade <= 0) {
-            throw new IllegalArgumentException("Quantidade deve ser maior que zero");
-        }
-        if (rota == null || rota.isBlank()) {
-            throw new IllegalArgumentException("Rota nao pode ser vazia");
-        }
-        if (distanciaKm == null || distanciaKm < 0) {
-            throw new IllegalArgumentException("Distancia nao pode ser negativa");
-        }
-        if (previsaoChegada == null) {
-            throw new IllegalArgumentException("Previsao de chegada e obrigatoria");
-        }
+        this(origem, destino, null, tipoSanguineo, componente, quantidade, rota, distanciaKm, previsaoChegada, false);
+    }
+
+    public Transferencia(Instituicao origem, Instituicao destino, Requisicao requisicao,
+                         TipoSanguineo tipoSanguineo, TipoComponente componente, Integer quantidade,
+                         String rota, Double distanciaKm, LocalDateTime previsaoChegada) {
+        this(origem, destino, requisicao, tipoSanguineo, componente, quantidade, rota, distanciaKm, previsaoChegada, true);
+    }
+
+    private Transferencia(Instituicao origem, Instituicao destino, Requisicao requisicao,
+                          TipoSanguineo tipoSanguineo, TipoComponente componente, Integer quantidade,
+                          String rota, Double distanciaKm, LocalDateTime previsaoChegada, boolean exigirRequisicao) {
+        if (origem == null || destino == null) throw new IllegalArgumentException("Origem e destino sao obrigatorios");
+        if (exigirRequisicao && requisicao == null) throw new IllegalArgumentException("Requisicao e obrigatoria para registrar uma transferencia");
+        if (origem.getId() != null && origem.getId().equals(destino.getId())) throw new IllegalArgumentException("Origem e destino devem ser instituicoes diferentes");
+        if (tipoSanguineo == null) throw new IllegalArgumentException("Tipo sanguineo e obrigatorio");
+        if (componente == null) throw new IllegalArgumentException("Componente e obrigatorio");
+        if (quantidade == null || quantidade <= 0) throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+        if (rota == null || rota.isBlank()) throw new IllegalArgumentException("Rota nao pode ser vazia");
+        if (distanciaKm == null || distanciaKm < 0) throw new IllegalArgumentException("Distancia nao pode ser negativa");
+        if (previsaoChegada == null) throw new IllegalArgumentException("Previsao de chegada e obrigatoria");
         this.origem = origem;
         this.destino = destino;
+        this.requisicao = requisicao;
         this.tipoSanguineo = tipoSanguineo;
         this.componente = componente;
         this.quantidade = quantidade;
         this.rota = rota;
         this.distanciaKm = distanciaKm;
         this.previsaoChegada = previsaoChegada;
-        this.status = StatusTransferencia.EM_TRANSPORTE; // ja nasce saindo
+        this.status = StatusTransferencia.EM_TRANSPORTE;
     }
 
     @PrePersist
     private void aoPersistir() {
+        if (this.requisicao == null) {
+            throw new IllegalStateException("Transferencia sem requisicao nao pode ser persistida.");
+        }
         this.dataCriacao = LocalDateTime.now();
         if (this.codigo == null) {
             this.codigo = "TR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -135,6 +140,7 @@ public class Transferencia {
     public Long getId() { return id; }
     public String getCodigo() { return codigo; }
     public Instituicao getOrigem() { return origem; }
+    public Requisicao getRequisicao() { return requisicao; }
     public Instituicao getDestino() { return destino; }
     public TipoSanguineo getTipoSanguineo() { return tipoSanguineo; }
     public TipoComponente getComponente() { return componente; }
