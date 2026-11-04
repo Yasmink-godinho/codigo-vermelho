@@ -3,6 +3,10 @@ package com.codigovermelho.config;
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.Ligacao;
 import com.codigovermelho.models.LoteHemocomponente;
+import com.codigovermelho.models.Requisicao;
+import com.codigovermelho.models.enums.NivelUrgencia;
+import com.codigovermelho.repositories.RequisicaoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.codigovermelho.models.enums.TipoComponente;
 import com.codigovermelho.models.enums.TipoInstituicao;
 import com.codigovermelho.models.enums.TipoSanguineo;
@@ -31,13 +35,23 @@ public class DataInitializer implements CommandLineRunner {
     private final InstituicaoRepository instituicaoRepository;
     private final LoteHemocomponenteRepository loteRepository;
     private final LigacaoRepository ligacaoRepository;
+    private final RequisicaoRepository requisicaoRepository; // pode ser null (testes antigos)
 
     public DataInitializer(InstituicaoRepository instituicaoRepository,
                            LoteHemocomponenteRepository loteRepository,
                            LigacaoRepository ligacaoRepository) {
+        this(instituicaoRepository, loteRepository, ligacaoRepository, null);
+    }
+
+    @Autowired
+    public DataInitializer(InstituicaoRepository instituicaoRepository,
+                           LoteHemocomponenteRepository loteRepository,
+                           LigacaoRepository ligacaoRepository,
+                           RequisicaoRepository requisicaoRepository) {
         this.instituicaoRepository = instituicaoRepository;
         this.loteRepository = loteRepository;
         this.ligacaoRepository = ligacaoRepository;
+        this.requisicaoRepository = requisicaoRepository;
     }
 
     @Override
@@ -103,6 +117,15 @@ public class DataInitializer implements CommandLineRunner {
         // entao a rota entre os dois passa pela Restauracao)
         garantirLigacao(hemope, hr);
         garantirLigacao(hr, oswaldoCruz);
+
+        // 4. Demanda de demonstracao (US09): sem requisicao PENDENTE a redistribuicao nao tem o que atender.
+        // So cria se nao existe nenhuma requisicao no banco (nao duplica nem mexe no que ja existe).
+        // O HEMOPE tem O- em estoque, entao o Oswaldo Cruz pedindo O- gera uma recomendacao compativel.
+        if (requisicaoRepository != null && requisicaoRepository.count() == 0) {
+            requisicaoRepository.save(new Requisicao(oswaldoCruz, TipoSanguineo.O_NEGATIVO,
+                    TipoComponente.CONCENTRADO_HEMACIAS, 5, NivelUrgencia.EMERGENCIA,
+                    "Requisicao de demonstracao"));
+        }
     }
 
     // procura pelo nome (sem diferenciar maiuscula de minuscula), devolve null se nao existe
