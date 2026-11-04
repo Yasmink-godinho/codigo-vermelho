@@ -2,6 +2,7 @@ package com.codigovermelho.services;
 
 import com.codigovermelho.controllers.dto.RecomendacaoRedistribuicaoResponse;
 import com.codigovermelho.controllers.dto.NovaTransferenciaRequest;
+import com.codigovermelho.exceptions.RegraDeNegocioException;
 import com.codigovermelho.models.Transferencia;
 import com.codigovermelho.models.Requisicao;
 import com.codigovermelho.models.enums.StatusRequisicao;
@@ -47,7 +48,7 @@ public class RedistribuicaoService {
     public void inicializarRecomendacoesSeVazio() {
         if (repository.count() == 0) {
             try { gerarAutomaticaBaseadaEmEstoque(); }
-            catch (IllegalStateException semDemandaElegivel) {
+            catch (RegraDeNegocioException semDemandaElegivel) {
                 // Sem requisicao e estoque compativeis, nao cria recomendacao ficticia.
             }
         }
@@ -72,7 +73,7 @@ public class RedistribuicaoService {
                         req.getVolume());
             }
         }
-        throw new IllegalStateException("Nao existe requisicao pendente com estoque compativel suficiente para gerar recomendacao.");
+        throw new RegraDeNegocioException("Nao existe requisicao pendente com estoque compativel suficiente para gerar recomendacao.");
     }
 
     @Transactional
