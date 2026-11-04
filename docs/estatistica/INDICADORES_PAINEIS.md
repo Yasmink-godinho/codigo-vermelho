@@ -11,9 +11,11 @@ Tela: **Painéis** (menu lateral) · rota `/paineis` · componente
 
 ## 1. Fontes de dados
 
-Todos os indicadores são calculados **no cliente**, a partir dos dados reais da aplicação.
-Não há valores fixos nos painéis: quando o backend está indisponível, usa-se o conjunto de
-demonstração (`mockData`) e a interface sinaliza isso com o selo *"Dados de demonstração"*.
+Todos os indicadores são calculados **no cliente**, a partir dos dados da aplicação.
+Não há valores fixos nos painéis. Quando o backend está indisponível, a camada de API usa dados
+locais e de exemplo. Atenção: o selo da tela mostra *"Dados do backend"* sempre que a lista
+devolvida não está vazia, então ele **não** distingue dado real de dado local
+(detalhes em [`METODOLOGIA_INDICADORES.md`](METODOLOGIA_INDICADORES.md), seção 5).
 
 | Domínio | Endpoint | Fallback | Campos usados |
 | ------- | -------- | -------- | ------------- |
@@ -91,7 +93,7 @@ Classificação da situação por tipo:
 | Situação | Critério |
 | -------- | -------- |
 | **Déficit** | `estoque < demanda` |
-| **Ajustado** | `1 < cobertura ≤ 1,5` |
+| **Ajustado** | `1 ≤ cobertura ≤ 1,5` (inclui estoque igual à demanda) |
 | **Folga** | `cobertura > 1,5` (ou demanda nula com estoque positivo) |
 | **Neutro** | sem estoque e sem demanda |
 
