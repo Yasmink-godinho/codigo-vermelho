@@ -9,8 +9,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Service
 public class AnaliseConsumoService {
@@ -18,13 +17,21 @@ public class AnaliseConsumoService {
     private static final int MIN_REGISTROS = 1;
     private static final int MAX_REGISTROS = 5_000_000;
     private static final int[] THREADS_PERMITIDAS = {2, 4, 8};
+    private final ThreadPoolExecutor executor;
+
+    public AnaliseConsumoService(ThreadPoolExecutor executor) {
+        this.executor = executor;
+    }
 
     public AnaliseConsumoResponse analisar(int quantidadeRegistros, String modo, int quantidadeThreads) {
         validarEntrada(quantidadeRegistros, modo, quantidadeThreads);
         int[] consumos = gerarConsumos(quantidadeRegistros);
         long inicio = System.nanoTime();
+        int threadsEfetivas = modo.equals("threads")
+                ? Math.min(quantidadeRegistros,
+                        Math.min(quantidadeThreads, executor.getMaximumPoolSize())) : 1;
         Estatisticas estatisticas = modo.equals("threads")
-                ? calcularComThreads(consumos, quantidadeThreads)
+                ? calcularComThreads(consumos, threadsEfetivas)
                 : calcularSequencial(consumos);
         long tempo = System.nanoTime() - inicio;
 
@@ -32,7 +39,7 @@ public class AnaliseConsumoService {
         double variancia = (double) estatisticas.somaQuadrados() / estatisticas.registros() - media * media;
         double desvioPadrao = Math.sqrt(Math.max(0, variancia));
         double coeficienteVariacao = media == 0 ? 0 : desvioPadrao / media * 100;
-        return new AnaliseConsumoResponse(modo, modo.equals("threads") ? quantidadeThreads : 1,
+        return new AnaliseConsumoResponse(modo, threadsEfetivas,
                 quantidadeRegistros, estatisticas.soma(), media, variancia, desvioPadrao,
             coeficienteVariacao, calcularPercentil(estatisticas.ordenados(), 0.5),
             calcularPercentil(estatisticas.ordenados(), 0.95), tempo);
@@ -52,13 +59,11 @@ public class AnaliseConsumoService {
     }
 
     private Estatisticas calcularComThreads(int[] consumos, int quantidadeThreads) {
-        ExecutorService executor = Executors.newFixedThreadPool(quantidadeThreads);
         try {
             List<Callable<ResultadoFatia>> tarefas = new ArrayList<>();
-            int tamanhoFatia = (consumos.length + quantidadeThreads - 1) / quantidadeThreads;
-            for (int inicio = 0; inicio < consumos.length; inicio += tamanhoFatia) {
-                int inicioFatia = inicio;
-                int fimFatia = Math.min(inicio + tamanhoFatia, consumos.length);
+            for (int indiceTarefa = 0; indiceTarefa < quantidadeThreads; indiceTarefa++) {
+                int inicioFatia = (int) ((long) indiceTarefa * consumos.length / quantidadeThreads);
+                int fimFatia = (int) ((long) (indiceTarefa + 1) * consumos.length / quantidadeThreads);
                 tarefas.add(() -> {
                     int[] copia = Arrays.copyOfRange(consumos, inicioFatia, fimFatia);
                     Arrays.sort(copia);
@@ -78,8 +83,6 @@ public class AnaliseConsumoService {
             throw new IllegalStateException("A analise foi interrompida", exception);
         } catch (ExecutionException exception) {
             throw new IllegalStateException("Falha ao processar uma fatia da analise", exception.getCause());
-        } finally {
-            executor.shutdown();
         }
     }
 

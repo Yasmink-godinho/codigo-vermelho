@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,11 +55,18 @@ class FilaFefoIntegracaoTest {
         loteService.registrar(id, TipoSanguineo.O_NEGATIVO, TipoComponente.CONCENTRADO_HEMACIAS,
                 LocalDate.now().minusDays(60), LocalDate.now().minusDays(1), 10);
 
+        long inicioMs = System.currentTimeMillis();
+        long inicioNanos = System.nanoTime();
         List<LoteHemocomponente> fila = loteService.filaFefo(TipoSanguineo.O_NEGATIVO, id);
+        long fimNanos = System.nanoTime();
+        long fimMs = System.currentTimeMillis();
 
         assertEquals(2, fila.size(), "O lote vencido nao deveria entrar na fila FEFO");
         assertTrue(fila.get(0).getDataValidade().isBefore(fila.get(1).getDataValidade()),
                 "A fila deveria estar ordenada por validade crescente");
         fila.forEach(lote -> assertFalse(lote.isVencido()));
+        System.out.printf(Locale.ROOT, "MEDICAO fila_fefo inicio_epoch_ms=%d fim_epoch_ms=%d "
+                        + "duracao_ms=%.3f lotes_processados=%d%n",
+                inicioMs, fimMs, (fimNanos - inicioNanos) / 1_000_000.0, fila.size());
     }
 }
