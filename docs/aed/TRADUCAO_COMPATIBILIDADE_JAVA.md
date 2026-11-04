@@ -65,3 +65,9 @@ A implementação Java existente representa as regras de compatibilidade sanguí
 A documentação apresenta a equivalência conceitual entre C/C++ e Java. Como não foi localizado um código C/C++ original específico da compatibilidade, não foi possível comprovar uma tradução linha a linha.
 
 A solução preserva a organização atual do projeto e facilita futuras verificações e manutenções.
+
+### Uso de IA
+
+Utilizei o ChatGPT como apoio na elaboração da documentação técnica.
+
+Não foram realizadas alterações nas regras de negócio ou nas classes Java.
