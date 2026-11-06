@@ -49,10 +49,10 @@ Este documento centraliza todos os artefatos exigidos pela disciplina de POO, or
 
 | Item | Descrição | Link |
 |---|---|---|
-| Histórias implementadas (POST-IT) | Descrição das histórias restantes implementadas | [Acessar](#) |
-| Issue/bug tracker | Print final do bug tracker | [Acessar](#) |
-| Screencast — sistema rodando | Vídeo com ênfase nas histórias finais | [Acessar](#) |
-| Screencast — explicação do código | Vídeo explicando o código das histórias finais | [Acessar](#) |
+| Histórias implementadas (POST-IT) | Descrição das histórias restantes implementadas | [Acessar](HISTORIAS_IMPLEMENTADAS_ENTREGA_4.md) |
+| Issue/bug tracker | Print final do bug tracker | [Acessar](../img/issue_bug_entrega_4_atualizado.png) |
+| Screencast — sistema rodando | Vídeo com ênfase nas histórias finais | [Acessar](https://youtu.be/auVvHfAGuxQ) |
+| Screencast — explicação do código | Vídeo explicando o código das histórias finais | [Acessar](https://youtu.be/auVvHfAGuxQ) |
 
 ---
 
