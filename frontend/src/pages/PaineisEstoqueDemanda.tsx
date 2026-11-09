@@ -101,6 +101,30 @@ function normStatus(x: any): string {
     return "outros";
 }
 
+// ─── Modelo probabilístico (U2) ───────────────────────────────────────────────
+// Probabilidade de desabastecimento: a demanda de cada tipo é modelada como uma
+// variável aleatória de Poisson(λ), com λ = demanda registrada (requisições) do
+// tipo. Retorna P(demanda > estoque atual) = 1 − Σ_{k=0}^{estoque} e^(−λ)·λ^k/k!.
+// Os termos são calculados de forma iterativa (termo_k = termo_{k−1}·λ/k) para
+// evitar overflow de fatorial/potência.
+function poissonProbDesabastecimento(lambda: number, estoque: number): number {
+    if (lambda <= 0) return 0;                       // sem demanda ⇒ sem risco
+    if (estoque <= 0) return 1 - Math.exp(-lambda);  // P(demanda ≥ 1)
+    let termo = Math.exp(-lambda);                   // k = 0
+    let acumulado = termo;                           // P(X ≤ estoque)
+    for (let k = 1; k <= estoque; k++) {
+        termo *= lambda / k;
+        acumulado += termo;
+    }
+    return Math.min(1, Math.max(0, 1 - acumulado));  // P(X > estoque)
+}
+
+function nivelRisco(p: number): { label: string; cor: string; badge: string } {
+    if (p >= 0.5) return { label: "Alto", cor: "#C8102E", badge: "bg-[#FFF0F2] text-[#C8102E]" };
+    if (p >= 0.2) return { label: "Moderado", cor: "#D97706", badge: "bg-amber-50 text-amber-700" };
+    return { label: "Baixo", cor: "#059669", badge: "bg-emerald-50 text-emerald-700" };
+}
+
 // ─── Card de KPI ──────────────────────────────────────────────────────────────
 function Kpi({ label, value, unit, sub, icon, color, bg, subColor }: {
     label: string; value: string; unit?: string; sub?: string;
@@ -311,6 +335,29 @@ export default function PaineisEstoqueDemandaScreen() {
             { label: "Σ demanda por tipo sanguíneo = demanda total", a: somaDemTipo, b: demanda.totalUnidades, ok: somaDemTipo === demanda.totalUnidades },
             { label: "Σ requisições por status = nº de requisições", a: somaStatus, b: demanda.totalReq, ok: somaStatus === demanda.totalReq },
         ];
+    }, [estoque, demanda]);
+
+    // ─── ANÁLISE PROBABILÍSTICA (U2) ─────────────────────────────────────────
+    const probabilistico = useMemo(() => {
+        const porTipo = BT_LABELS.map((bt) => {
+            const est = estoque.porTipo.find((p) => p.bt === bt)?.unidades || 0;
+            const lambda = demanda.porTipo.find((p) => p.bt === bt)?.unidades || 0; // demanda registrada
+            const prob = poissonProbDesabastecimento(lambda, est);
+            return { bt, estoque: est, lambda, prob, pct: prob * 100 };
+        });
+        const comDados = porTipo.filter((p) => p.lambda > 0 || p.estoque > 0);
+        const riscoAlto = porTipo.filter((p) => p.prob >= 0.5).length;
+        const maior = [...porTipo].sort((a, b) => b.prob - a.prob)[0];
+
+        // Descarte por vencimento (a partir das faixas de validade)
+        const vencidas = estoque.faixas.find((f) => f.id === "vencido")?.unidades || 0;
+        const risco7d = (estoque.faixas.find((f) => f.id === "critico")?.unidades || 0)
+                      + (estoque.faixas.find((f) => f.id === "atencao")?.unidades || 0);
+        const total = estoque.totalUnidades; // inclui vencidas (as faixas somam o total)
+        const taxaDescarte = total > 0 ? (vencidas / total) * 100 : 0;
+        const taxaRisco7d = total > 0 ? (risco7d / total) * 100 : 0;
+
+        return { porTipo, comDados, riscoAlto, maior, vencidas, risco7d, taxaDescarte, taxaRisco7d };
     }, [estoque, demanda]);
 
     // Dados do gráfico "estoque por tipo" respeitando o filtro de componente
@@ -610,6 +657,90 @@ export default function PaineisEstoqueDemandaScreen() {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* ══════════════ ANÁLISE PROBABILÍSTICA (U2) ══════════════ */}
+            <SectionTitle icon={<IconTrendingDown size={18} />} title="Análise Probabilística" hint="risco de desabastecimento e de descarte (U2)" />
+
+            {/* KPIs probabilísticos */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Kpi label="Taxa de Descarte" value={`${fmt(probabilistico.taxaDescarte, 1)}%`}
+                     sub={`${probabilistico.vencidas} unid. vencidas de ${estoque.totalUnidades}`}
+                     subColor={probabilistico.taxaDescarte > 0 ? "text-[#C8102E]" : "text-emerald-600"}
+                     icon={<IconThermometer size={18} />}
+                     color={probabilistico.taxaDescarte > 0 ? "text-[#C8102E]" : "text-emerald-600"}
+                     bg={probabilistico.taxaDescarte > 0 ? "bg-[#FFF0F2]" : "bg-emerald-50"} />
+                <Kpi label="Risco de Descarte (≤7d)" value={`${fmt(probabilistico.taxaRisco7d, 1)}%`}
+                     sub={`${probabilistico.risco7d} unid. a vencer em 7 dias`}
+                     subColor={probabilistico.taxaRisco7d > 0 ? "text-amber-600" : "text-emerald-600"}
+                     icon={<IconClock size={18} />}
+                     color={probabilistico.taxaRisco7d > 0 ? "text-amber-600" : "text-emerald-600"}
+                     bg={probabilistico.taxaRisco7d > 0 ? "bg-amber-50" : "bg-emerald-50"} />
+                <Kpi label="Tipos em Risco Alto" value={String(probabilistico.riscoAlto)} unit="/ 8"
+                     sub="P(desabastecimento) ≥ 50%"
+                     subColor={probabilistico.riscoAlto > 0 ? "text-[#C8102E]" : "text-emerald-600"}
+                     icon={<IconAlertTriangle size={18} />}
+                     color={probabilistico.riscoAlto > 0 ? "text-[#C8102E]" : "text-emerald-600"}
+                     bg={probabilistico.riscoAlto > 0 ? "bg-[#FFF0F2]" : "bg-emerald-50"} />
+                <Kpi label="Maior Risco" value={probabilistico.maior ? probabilistico.maior.bt : "—"}
+                     sub={probabilistico.maior ? `${fmt(probabilistico.maior.pct, 0)}% de desabastecimento` : "sem dados"}
+                     subColor={probabilistico.maior && probabilistico.maior.prob >= 0.5 ? "text-[#C8102E]" : "text-slate-400"}
+                     icon={<IconDroplet size={18} />} color="text-[#C8102E]" bg="bg-[#FFF0F2]" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+                {/* Gráfico de probabilidade por tipo */}
+                <div className="lg:col-span-3 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+                    <div className="text-[12px] font-semibold text-slate-700 mb-1">Probabilidade de Desabastecimento por Tipo</div>
+                    <div className="text-[11px] text-slate-400 mb-3">P(demanda &gt; estoque) · modelo de Poisson (λ = demanda registrada)</div>
+                    <ResponsiveContainer width="100%" height={230}>
+                        <BarChart data={probabilistico.porTipo} barSize={26} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+                            <CartesianGrid vertical={false} stroke="#F1F5F9" />
+                            <XAxis dataKey="bt" tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                            <RechartTooltip contentStyle={tooltipStyle} formatter={(v: any) => [`${fmt(Number(v), 1)}%`, "P(desabastecimento)"]} />
+                            <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
+                                {probabilistico.porTipo.map((p) => <Cell key={p.bt} fill={nivelRisco(p.prob).cor} />)}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Tabela por tipo */}
+                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm flex flex-col">
+                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 text-[12px] font-semibold text-slate-700">
+                        Estoque · Demanda (λ) · Risco
+                    </div>
+                    <div className="grid px-5 py-2.5 bg-slate-50/60 border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-widest"
+                         style={{ gridTemplateColumns: "48px 1fr 1fr 78px" }}>
+                        <div>Tipo</div><div className="text-right">Est.</div><div className="text-right">λ</div><div className="text-right">P(des.)</div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {probabilistico.comDados.map((p) => {
+                            const nv = nivelRisco(p.prob);
+                            return (
+                                <div key={p.bt} className="grid px-5 py-2.5 items-center border-b border-slate-50 last:border-0 text-[12.5px]"
+                                     style={{ gridTemplateColumns: "48px 1fr 1fr 78px", fontFamily: "'JetBrains Mono', monospace" }}>
+                                    <div className="font-bold text-slate-700">{p.bt}</div>
+                                    <div className="text-right text-slate-800">{p.estoque}</div>
+                                    <div className="text-right text-slate-500">{p.lambda}</div>
+                                    <div className="text-right font-semibold" style={{ color: nv.cor }}>{fmt(p.pct, 0)}%</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* Nota metodológica */}
+            <div className="bg-slate-50 rounded-xl border border-slate-100 px-5 py-4 text-[11.5px] text-slate-500 leading-relaxed">
+                <span className="font-semibold text-slate-600">Metodologia.</span> A demanda de cada tipo
+                sanguíneo é tratada como variável aleatória de Poisson com média λ igual à demanda
+                registrada (soma das requisições do tipo). A <span className="font-semibold">probabilidade de
+                desabastecimento</span> é P(demanda &gt; estoque atual) = 1 − Σ<sub>k=0..estoque</sub> e<sup>−λ</sup>·λ<sup>k</sup>/k!.
+                A <span className="font-semibold">taxa de descarte por vencimento</span> = unidades vencidas ÷ estoque total;
+                o <span className="font-semibold">risco de descarte</span> considera as unidades ainda válidas que vencem em até 7 dias.
+                Classificação de risco: alto ≥ 50%, moderado 20–50%, baixo &lt; 20%.
             </div>
 
             {/* ══════════════ VALIDAÇÃO / CONSISTÊNCIA ══════════════ */}

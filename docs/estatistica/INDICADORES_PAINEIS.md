@@ -116,10 +116,52 @@ recortes do mesmo total, evidenciando a corretude dos cálculos.
 
 ---
 
+## 5.1 Análise probabilística (Unidade 2)
+
+Evolução da análise descritiva para a camada probabilística exigida na U2, consolidada no
+mesmo painel (seção **Análise Probabilística**).
+
+### Probabilidade de desabastecimento por tipo
+
+A demanda de cada tipo sanguíneo é modelada como uma variável aleatória de **Poisson(λ)**,
+com `λ` = demanda registrada (soma das requisições do tipo). A probabilidade de
+desabastecimento é a probabilidade de a demanda superar o estoque atual:
+
+```text
+P(desabastecimento) = P(X > estoque) = 1 − Σ_{k=0}^{estoque} e^(−λ) · λ^k / k!
+```
+
+Os termos são somados de forma iterativa (`termo_k = termo_{k−1} · λ / k`) para evitar
+overflow. Casos de borda: `λ = 0` ⇒ probabilidade 0 (sem demanda, sem risco);
+`estoque = 0` com `λ > 0` ⇒ `1 − e^(−λ)` (probabilidade de haver ao menos uma unidade demandada).
+
+Classificação de risco: **alto** ≥ 50%, **moderado** 20–50%, **baixo** < 20%.
+
+### Taxa de descarte por vencimento
+
+```text
+taxa_de_descarte   = unidades vencidas ÷ estoque total
+risco_de_descarte  = unidades a vencer em ≤ 7 dias ÷ estoque total
+```
+
+Calculadas a partir das faixas de validade (a faixa `vencido` para o descarte efetivo;
+`crítico ≤ 3d` + `atenção 4–7d` para o risco), com os mesmos dados de validade dos lotes.
+
+### Por que Poisson
+
+A chegada de requisições por tipo é uma contagem de eventos em um período, sem limite
+superior fixo e com eventos aproximadamente independentes — o cenário clássico de uma
+distribuição de Poisson. O modelo usa só um parâmetro (λ), estimado diretamente da demanda
+observada, o que o mantém simples e coerente com o escopo da disciplina (não é exigido
+aprendizado de máquina).
+
+---
+
 ## 6. Evidências esperadas
 
 - Painéis de estoque e demanda acessíveis pela interface (menu **Painéis**).
 - Indicadores calculados a partir dos dados reais (lotes e requisições).
-- Gráficos: barras (tipo, instituição, validade, estoque × demanda) e donuts (componente, urgência, status).
+- Gráficos: barras (tipo, instituição, validade, estoque × demanda, probabilidade de desabastecimento) e donuts (componente, urgência, status).
+- **Análise probabilística (U2):** probabilidade de desabastecimento por tipo e taxa de descarte por vencimento, com nota metodológica no painel.
 - Bloco de validação com as reconciliações.
 - Esta documentação dos indicadores e das fontes de dados.
