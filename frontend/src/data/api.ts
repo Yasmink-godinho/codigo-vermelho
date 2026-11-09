@@ -1,3 +1,4 @@
+import type { Requisicao } from "@/types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
 
 // ─── Chaves de Armazenamento Local ───────────────────────────────────────────
@@ -72,6 +73,22 @@ export interface AnaliseConsumoAPI {
   scoreRisco?: number;
   recomendacao?: string;
   [key: string]: any;
+}
+
+// Resposta real do endpoint GET /api/v1/analises/consumo (motor concorrente — US06).
+// Espelha o record AnaliseConsumoResponse do backend.
+export interface AnaliseConsumoApiData {
+  modo: string;
+  threads: number;
+  registros: number;
+  somaConsumo: number;
+  media: number;
+  variancia: number;
+  desvioPadrao: number;
+  coeficienteVariacao: number;
+  mediana: number;
+  percentil95: number;
+  tempoProcessamentoNanos: number;
 }
 
 export interface RequisicaoAPI {
@@ -406,8 +423,8 @@ export async function getFilaFEFO(): Promise<any[]> {
 
   let listaBase: any[] = [...novosLocais, ...lotesBackend];
   if (listaBase.length === 0) {
-    const { fefoQueueData } = await import("@/data/mockData");
-    listaBase = [...fefoQueueData];
+    const { DEMO_LOTES } = await import("@/data/mockData");
+    listaBase = [...DEMO_LOTES];
   }
 
   // Clona para calcular o abatimento FEFO sem mutar arrays originais
@@ -628,20 +645,21 @@ export async function calcularRotaApi(
 
 // ─── 5. Requisições ───────────────────────────────────────────────────────────
 
-export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
+export async function buscarRequisicoesApi(): Promise<Requisicao[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/requisicoes`);
     if (res.ok) {
       const backendList = await res.json();
+      // O backend (RequisicaoResponse) já devolve no formato do frontend (Requisicao).
       if (Array.isArray(backendList) && backendList.length > 0) {
-        return backendList;
+        return backendList as Requisicao[];
       }
     }
   } catch (e) {
     console.warn("Backend offline ao buscar requisições.");
   }
 
-  let localList: any[] = [];
+  let localList: Requisicao[] = [];
   try {
     const salvos = localStorage.getItem(REQUISICOES_STORAGE_KEY);
     if (salvos) localList = JSON.parse(salvos);
@@ -649,21 +667,9 @@ export async function buscarRequisicoesApi(): Promise<RequisicaoAPI[]> {
 
   if (localList.length > 0) return localList;
 
-  return [
-    {
-      id: "#REQ-101",
-      instituicaoSolicitanteId: 3,
-      instituicaoSolicitanteNome: "Hospital Universitário Oswaldo Cruz",
-      instituicaoOrigemId: 1,
-      instituicaoOrigemNome: "Fundação HEMOPE",
-      tipoSanguineo: "O-",
-      componente: "Concentrado de Hemácias",
-      quantidade: 3,
-      status: "Em análise",
-      urgencia: "Alta",
-      dataHora: "10:15",
-    },
-  ];
+  // Fallback de demonstração no mesmo formato (Requisicao) que as telas consomem.
+  const { DEMO_REQUISICOES } = await import("@/data/mockData");
+  return [...DEMO_REQUISICOES];
 }
 
 export const listarRequisicoesApi = buscarRequisicoesApi;
@@ -730,19 +736,24 @@ export async function atualizarStatusRequisicaoApi(
 
 // ─── 6. Análise de Consumo, Telemetria e Score de Risco ────────────────────────
 
-export async function buscarAnaliseConsumoApi(): Promise<AnaliseConsumoAPI[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/analises/consumo`);
-    if (res.ok) return await res.json();
-  } catch (e) {
-    console.warn("Backend offline ao buscar análise de consumo.");
-  }
-  return [];
+export async function buscarAnaliseConsumoApi(
+  registros: number = 100000,
+  modo: string = "threads",
+  threads: number = 4,
+): Promise<AnaliseConsumoApiData> {
+  const params = new URLSearchParams({
+    registros: String(registros),
+    modo,
+    threads: String(threads),
+  });
+  const res = await fetch(`${API_BASE_URL}/analises/consumo?${params.toString()}`);
+  if (!res.ok) throw new Error(`Falha na análise de consumo: HTTP ${res.status}`);
+  return (await res.json()) as AnaliseConsumoApiData;
 }
 
 export async function buscarScoreRiscoApi(): Promise<any[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/scores/risco`);
+    const res = await fetch(`${API_BASE_URL}/processamento/score-risco`);
     if (res.ok) return await res.json();
   } catch (e) {
     console.warn("Backend offline ao buscar score de risco.");
@@ -750,12 +761,31 @@ export async function buscarScoreRiscoApi(): Promise<any[]> {
   return [];
 }
 
-export async function buscarTelemetriaApi(transferenciaId?: number | string): Promise<any[]> {
+// Alerta térmico vindo do backend (US07) — GET /api/v1/alertas-termicos.
+// Espelha o record AlertaTermicoResponse.
+export interface AlertaTermicoAPI {
+  id: number;
+  transferenciaId: number;
+  codigoTransferencia: string;
+  leituraId: number;
+  temperatura: number;
+  nivel: string; // NORMAL | ATENCAO | CRITICO
+  mensagem: string;
+  dataHora: string;
+}
+
+// Todos os alertas térmicos (para a Central de Alertas). Lança em caso de
+// falha/offline para a tela saber que o backend não respondeu.
+export async function buscarAlertasTermicosApi(): Promise<AlertaTermicoAPI[]> {
+  const res = await fetch(`${API_BASE_URL}/alertas-termicos`);
+  if (!res.ok) throw new Error(`Falha ao buscar alertas térmicos: HTTP ${res.status}`);
+  return (await res.json()) as AlertaTermicoAPI[];
+}
+
+// Histórico de leituras de uma transferência — GET /api/v1/transferencias/{id}/telemetria.
+export async function buscarTelemetriaApi(transferenciaId: number | string): Promise<any[]> {
   try {
-    const url = transferenciaId
-        ? `${API_BASE_URL}/telemetria?transferenciaId=${transferenciaId}`
-        : `${API_BASE_URL}/telemetria`;
-    const res = await fetch(url);
+    const res = await fetch(`${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`);
     if (res.ok) return await res.json();
   } catch (e) {
     console.warn("Backend offline ao buscar telemetria.");

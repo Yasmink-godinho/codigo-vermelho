@@ -24,7 +24,7 @@ import java.time.LocalDate;
 // e criada se ainda nao existir, o mesmo vale pras ligacoes. Nada que ja esta no banco e
 // apagado ou alterado. Os lotes de exemplo so entram junto com a instituicao quando ela e criada.
 @Configuration
-@Profile("dev")
+@Profile({"dev", "prod"})
 public class DataInitializer implements CommandLineRunner {
 
     static final String NOME_HEMOPE = "Fundação HEMOPE";

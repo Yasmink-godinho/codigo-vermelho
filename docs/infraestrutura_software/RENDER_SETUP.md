@@ -94,3 +94,21 @@ Copie o **Deploy Hook** → GitHub Secret `RENDER_DEPLOY_HOOK_FRONTEND_URL`.
 3. Cria o Static Site com `VITE_API_BASE_URL` = URL do backend + `/api/v1` (anota a URL do frontend).
 4. Volta no Web Service e preenche `APP_CORS_ALLOWED_ORIGINS` com a URL do frontend.
 5. Põe os dois Deploy Hooks nos GitHub Secrets. Pronto: cada push na main com esteira verde publica os dois.
+
+## 6. Rewrite SPA (frontend) - obrigatório
+
+O frontend é uma SPA (React Router). No **Static Site** do Render, adicione a regra:
+
+| Source | Destination | Action |
+|--------|-------------|--------|
+| `/*`   | `/index.html` | Rewrite |
+
+(Render → serviço do frontend → **Redirects/Rewrites** → Add Rule.)
+Sem ela, recarregar numa subrota (ex.: `/paineis`, `/alertas`) retorna **404**, porque o
+servidor procura um arquivo nesse caminho em vez de deixar o React Router resolver.
+
+## 7. GEMINI_API_KEY - opcional
+
+A explicabilidade da US09 usa a Gemini quando `GEMINI_API_KEY` está definida no Web Service;
+sem a chave, o backend usa um **fallback determinístico** e funciona normalmente. É opcional —
+configure só se quiser as justificativas geradas por IA.

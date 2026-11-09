@@ -3,7 +3,7 @@
 # ========================= Etapa 1: build =========================
 # Compila a aplicacao e RODA OS TESTES. Se algum teste estiver vermelho,
 # o build falha aqui e a imagem final nunca e gerada.
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 COPY mvnw .
 COPY .mvn .mvn
@@ -15,7 +15,7 @@ RUN ./mvnw -q clean verify
 # ========================= Etapa 2: runtime =======================
 # Imagem final enxuta: so o JRE + o jar. Menor e com menos pacotes
 # vulneraveis do que a imagem de build (que carrega o JDK e o Maven).
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # curl: usado pelo healthcheck do compose.  Usuario nao-root: a app nao roda como root.
