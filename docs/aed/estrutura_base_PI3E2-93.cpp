@@ -1,225 +1,61 @@
+// PI3E2-93 - Demonstracao das estruturas em C++ com dados sinteticos.
+// A saida deste programa e a mesma da demonstracao em Java
+// (conexao_poo_PI3E2-94.java), o que permite comparar as duas linguagens.
+//
+// Compilar: g++ estrutura_base_PI3E2-93.cpp -o demo
+// Executar: ./demo
 #include <iostream>
-#include <string>
+#include "estrutura_base_PI3E2-93.h"
 using namespace std;
 
-// ==== Structs definidas no backlog anterior (PI3E2-92) ====
-struct Bolsa {
-    string idBolsa;
-    string tipoSanguineo;
-    string dataColeta;
-    string dataValidade;
-    string idUnidadeAtual;
-    string status;
-};
-
-struct Requisicao {
-    string idRequisicao;
-    string idUnidadeSolicitante;
-    string idUnidadeFornecedora;
-    string tipoSanguineoSolicitado;
-    int quantidadeSolicitada;
-    string dataRequisicao;
-    string status;
-};
-
-struct Movimentacao {
-    string idBolsa;
-    string tipoEvento; // "Coletada", "Reservada", "Utilizada", "Descartada"
-    string data;
-};
-
-// ============================================================
-// LISTA ENCADEADA - bolsas disponiveis em uma unidade
-// ============================================================
-struct NoBolsa {
-    Bolsa dado;
-    NoBolsa* proximo;
-};
-
-class ListaBolsas {
-private:
-    NoBolsa* inicio;
-public:
-    ListaBolsas() { inicio = nullptr; }
-    ~ListaBolsas() {
-        while (inicio != nullptr) {
-            NoBolsa* temp = inicio;
-            inicio = inicio->proximo;
-            delete temp;
-        }
-    }
-    ListaBolsas(const ListaBolsas&) = delete;
-    ListaBolsas& operator=(const ListaBolsas&) = delete;
-
-    const Bolsa* consultar(const string& idBolsa) const {
-        NoBolsa* atual = inicio;
-        while (atual != nullptr) {
-            if (atual->dado.idBolsa == idBolsa) return &atual->dado;
-            atual = atual->proximo;
-        }
-        return nullptr;
-    }
-
-    void inserir(Bolsa nova) {
-        NoBolsa* novo = new NoBolsa();
-        novo->dado = nova;
-        novo->proximo = inicio;
-        inicio = novo;
-    }
-
-    bool remover(string idBolsa) {
-        NoBolsa* atual = inicio;
-        NoBolsa* anterior = nullptr;
-        while (atual != nullptr) {
-            if (atual->dado.idBolsa == idBolsa) {
-                if (anterior == nullptr) inicio = atual->proximo;
-                else anterior->proximo = atual->proximo;
-                delete atual;
-                return true;
-            }
-            anterior = atual;
-            atual = atual->proximo;
-        }
-        return false; // nao encontrou a bolsa
-    }
-
-    void listar() {
-        NoBolsa* atual = inicio;
-        while (atual != nullptr) {
-            cout << atual->dado.idBolsa << " - " << atual->dado.tipoSanguineo
-                 << " - " << atual->dado.status << endl;
-            atual = atual->proximo;
-        }
-    }
-};
-
-// ============================================================
-// FILA - requisicoes pendentes (FIFO)
-// ============================================================
-struct NoRequisicao {
-    Requisicao dado;
-    NoRequisicao* proximo;
-};
-
-class FilaRequisicoes {
-private:
-    NoRequisicao* inicio;
-    NoRequisicao* fim;
-public:
-    FilaRequisicoes() { inicio = nullptr; fim = nullptr; }
-    ~FilaRequisicoes() {
-        while (inicio != nullptr) {
-            NoRequisicao* temp = inicio;
-            inicio = inicio->proximo;
-            delete temp;
-        }
-        fim = nullptr;
-    }
-    FilaRequisicoes(const FilaRequisicoes&) = delete;
-    FilaRequisicoes& operator=(const FilaRequisicoes&) = delete;
-
-    const Requisicao* consultarProxima() const {
-        return inicio == nullptr ? nullptr : &inicio->dado;
-    }
-
-    void enfileirar(Requisicao nova) {
-        NoRequisicao* novo = new NoRequisicao();
-        novo->dado = nova;
-        novo->proximo = nullptr;
-        if (fim == nullptr) {
-            inicio = novo;
-            fim = novo;
-        } else {
-            fim->proximo = novo;
-            fim = novo;
-        }
-    }
-
-    bool desenfileirar(Requisicao &removida) {
-        if (inicio == nullptr) return false;
-        removida = inicio->dado;
-        NoRequisicao* temp = inicio;
-        inicio = inicio->proximo;
-        if (inicio == nullptr) fim = nullptr;
-        delete temp;
-        return true;
-    }
-
-    bool vazia() {
-        return inicio == nullptr;
-    }
-};
-
-// ============================================================
-// PILHA - historico de movimentacoes de uma bolsa (LIFO)
-// ============================================================
-struct NoMovimentacao {
-    Movimentacao dado;
-    NoMovimentacao* proximo;
-};
-
-class PilhaMovimentacoes {
-private:
-    NoMovimentacao* topo;
-public:
-    PilhaMovimentacoes() { topo = nullptr; }
-    ~PilhaMovimentacoes() {
-        while (topo != nullptr) {
-            NoMovimentacao* temp = topo;
-            topo = topo->proximo;
-            delete temp;
-        }
-    }
-    PilhaMovimentacoes(const PilhaMovimentacoes&) = delete;
-    PilhaMovimentacoes& operator=(const PilhaMovimentacoes&) = delete;
-
-    const Movimentacao* consultarTopo() const {
-        return topo == nullptr ? nullptr : &topo->dado;
-    }
-
-    void empilhar(Movimentacao nova) {
-        NoMovimentacao* novo = new NoMovimentacao();
-        novo->dado = nova;
-        novo->proximo = topo;
-        topo = novo;
-    }
-
-    bool desempilhar(Movimentacao &removida) {
-        if (topo == nullptr) return false;
-        removida = topo->dado;
-        NoMovimentacao* temp = topo;
-        topo = topo->proximo;
-        delete temp;
-        return true;
-    }
-
-    bool vazia() {
-        return topo == nullptr;
-    }
-};
-
-// ============================================================
-// TESTE COM DADOS SINTETICOS
-// ============================================================
 int main() {
+    // LISTA
     ListaBolsas bolsasH01;
     bolsasH01.inserir({"B001", "O+", "2026-09-01", "2026-10-13", "H01", "Disponivel"});
     bolsasH01.inserir({"B002", "A-", "2026-09-05", "2026-10-17", "H01", "Disponivel"});
     bolsasH01.listar();
+    cout << "Tamanho da lista: " << bolsasH01.tamanho() << endl;
 
-    FilaRequisicoes filaH01;
-    filaH01.enfileirar({"R001", "H03", "HEMO01", "O-", 5, "2026-09-14", "Pendente"});
-    filaH01.enfileirar({"R002", "H06", "HEMO01", "B-", 3, "2026-09-14", "Pendente"});
+    Bolsa encontrada;
+    if (bolsasH01.consultar("B001", encontrada)) {
+        cout << "Consulta B001: " << encontrada.tipoSanguineo << " - " << encontrada.status << endl;
+    }
+
+    // FILA
+    FilaRequisicoes filaHemo01;
+    filaHemo01.enfileirar({"R001", "H03", "HEMO01", "O-", 5, "2026-09-14", "Pendente"});
+    filaHemo01.enfileirar({"R002", "H06", "HEMO01", "B-", 3, "2026-09-14", "Pendente"});
+
     Requisicao proxima;
-    filaH01.desenfileirar(proxima);
-    cout << "Atendendo requisicao: " << proxima.idRequisicao << endl;
+    if (filaHemo01.consultarProxima(proxima)) {
+        cout << "Proxima da fila (sem remover): " << proxima.idRequisicao << endl;
+    }
 
+    Requisicao atendida;
+    filaHemo01.desenfileirar(atendida);
+    cout << "Atendendo requisicao: " << atendida.idRequisicao << endl;
+    cout << "Restam na fila: " << filaHemo01.tamanho() << endl;
+
+    // PILHA
     PilhaMovimentacoes historicoB001;
     historicoB001.empilhar({"B001", "Coletada", "2026-09-01"});
     historicoB001.empilhar({"B001", "Reservada", "2026-09-10"});
+
+    Movimentacao topoAtual;
+    if (historicoB001.consultarTopo(topoAtual)) {
+        cout << "Topo do historico (sem remover): " << topoAtual.tipoEvento << endl;
+    }
+
     Movimentacao ultimoEvento;
     historicoB001.desempilhar(ultimoEvento);
-    cout << "Ultimo evento da bolsa B001: " << ultimoEvento.tipoEvento << endl;
+    cout << "Ultimo evento removido da pilha: " << ultimoEvento.tipoEvento << endl;
 
+    // Pilha vazia: desempilhar devolve false (nao quebra o programa)
+    historicoB001.desempilhar(ultimoEvento);
+    bool deuCerto = historicoB001.desempilhar(ultimoEvento);
+    cout << "Desempilhar com pilha vazia: " << (deuCerto ? "true" : "false") << endl;
+
+    // Ao sair do main, os destrutores fazem delete dos nos que sobraram
+    // (2 bolsas na lista e 1 requisicao na fila).
     return 0;
 }
