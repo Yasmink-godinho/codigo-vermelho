@@ -1,0 +1,26 @@
+Cenario,Item,Quantidade,Preco_unitario_USD_mes,Custo_mensal_USD,Regiao,Fonte,Data_consulta
+Baixo,Web Service (Starter 0.5CPU/512MB),2,7,14,Oregon,render.com/pricing,18/11/2026
+Baixo,PostgreSQL (Basic 0.1CPU/256MB 100 conex),1,6,6,Oregon,render.com/pricing,18/11/2026
+Baixo,Static Site,1,0,0,Oregon,render.com/pricing,18/11/2026
+Baixo,Plano Pro Render (workspace),1,25,25,Oregon,render.com/pricing,18/11/2026
+Baixo,TOTAL,,,45,,,
+Baixo,Pedidos por mes,6000,,,,,
+Baixo,Custo por pedido (USD),,,0.0075,,,
+Moderado,Web Service (Standard 1CPU/2GB),3,25,75,Oregon,render.com/pricing,18/11/2026
+Moderado,PostgreSQL (1CPU/2GB 100 conex),1,40,40,Oregon,render.com/pricing,18/11/2026
+Moderado,Key Value (256MB 200 conex),1,10,10,Oregon,render.com/pricing,18/11/2026
+Moderado,Static Site,1,0,0,Oregon,render.com/pricing,18/11/2026
+Moderado,Plano Pro Render (workspace),1,25,25,Oregon,render.com/pricing,18/11/2026
+Moderado,TOTAL,,,150,,,
+Moderado,Pedidos por mes,90000,,,,,
+Moderado,Custo por pedido (USD),,,0.00167,,,
+Alto,Web Service (Pro 2CPU/4GB),6,85,510,Oregon,render.com/pricing,18/11/2026
+Alto,PostgreSQL principal (2CPU/8GB 200 conex),1,100,100,Oregon,render.com/pricing,18/11/2026
+Alto,PostgreSQL replica de leitura,1,100,100,Oregon,render.com/pricing,18/11/2026
+Alto,Key Value (1GB 250 conex),1,20,20,Oregon,render.com/pricing,18/11/2026
+Alto,Worker telemetria (Standard 1CPU/2GB),1,25,25,Oregon,render.com/pricing,18/11/2026
+Alto,Static Site,1,0,0,Oregon,render.com/pricing,18/11/2026
+Alto,Plano Pro Render (workspace),1,25,25,Oregon,render.com/pricing,18/11/2026
+Alto,TOTAL,,,780,,,
+Alto,Pedidos por mes,900000,,,,,
+Alto,Custo por pedido (USD),,,0.00087,,,
