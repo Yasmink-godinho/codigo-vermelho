@@ -14,7 +14,7 @@ Este documento confere **o percurso de uma leitura de temperatura**, desde o env
 
 **Resultado em cinco linhas**
 
-1. O caminho **leitura → validação → gravação → alerta → consulta** está completo e testado no backend (5 endpoints da US07).
+1. O caminho **leitura → validação → gravação → alerta → consulta** está completo e testado no backend, com os cinco endpoints da US07 e o endpoint adicional de ingestão concorrente em lote.
 2. A regra de negócio confere com a história: faixa segura de 2 a 6 °C, leitura fora da faixa é aceita (201) e gera alerta crítico na mesma transação.
 3. Os saltos **Backend → PostgreSQL (TCP/5432)** e **Navegador → Frontend (HTTPS/443)** conferem com a arquitetura.
 4. O salto **Frontend → Backend (HTTP/1.1, 8080)** do diagrama não corresponde ao fluxo real: o frontend é um site estático e é o **navegador** que chama a API diretamente.
@@ -67,6 +67,8 @@ flowchart LR
 | 9 | Consulta | `GET .../telemetria` (histórico em ordem cronológica), `GET .../alertas` (por transferência) e `GET /api/v1/alertas-termicos` (todos) | `TelemetriaController` |
 
 **Fonte simulada.** `POST /api/v1/transferencias/{id}/telemetria/simulacao?quantidade=5&comDesvio=true` gera de 1 a 50 leituras dentro do próprio backend e as envia ao mesmo `TelemetriaService`, então a regra de alerta é idêntica. Esse caminho **não atravessa a rede** entre sensor e servidor. Quantidade fora de 1 a 50 devolve 400.
+
+**Ingestão concorrente em lote.** `POST /api/v1/transferencias/{id}/telemetria/lote` aceita de 1 a 50 objetos `{"temperatura": valor}` no corpo `{"leituras":[...]}`. `TelemetriaIngestaoService` despacha as leituras pelo pool compartilhado configurado em `analise.thread-pool.size` (padrão 8). Cada tarefa chama `TelemetriaService.registrarLeitura`, portanto a validação da faixa, a gravação da leitura, a criação do alerta crítico e a regra de transferência em transporte continuam centralizadas e independentes por tarefa. O pool não reduz nem altera o formato das respostas: o endpoint devolve `201` com uma `LeituraResponse` por item, na ordem da entrada, enquanto leituras inválidas são recusadas com `400` e lotes com mais de 50 itens com `400`.
 
 **Ciclo de vida da transferência.** `POST /api/v1/transferencias` cria a transferência já `EM_TRANSPORTE`, e `PATCH /api/v1/transferencias/{id}/entrega` a marca como `ENTREGUE`. Depois disso o `POST` de telemetria devolve 409.
 
@@ -157,7 +159,8 @@ Resultado: **Validado** (conferido no código e coberto por teste automatizado),
 | V13 | O frontend consome telemetria e alertas do backend | Não implementado | `buscarTelemetriaApi` aponta para `/telemetria` (rota que não existe) e não é usada; Transferências usam `localStorage`; a Central de Alertas usa uma lista fixa |
 | V14 | O alerta chega ao operador sem ação manual | Parcial | O alerta é gravado na hora, mas a entrega depende de consulta (polling REST); não há WebSocket nem SSE |
 | V15 | Painel de rede com latência, vazão, taxa de erro e uptime (US10) | Não implementado | Sem `RedeController`, sem Actuator; `MonitoramentoRede.tsx` usa `LATENCY_24H` e `SERVICES` de exemplo, com uptime fixo em 99,7 |
-| V16 | Contrato de API da US07 coincide com o código | Validado | Os 5 endpoints de `CONTRATOS_API.md` existem no `TelemetriaController` |
+| V16 | Contrato de API da US07 coincide com o código | Validado | Os cinco endpoints originais de `CONTRATOS_API.md` existem no `TelemetriaController`; o lote concorrente também está documentado |
+| V17 | Ingestão em lote é processada pelo pool compartilhado e preserva alertas críticos | Validado | `TelemetriaIngestaoService`, endpoint `/telemetria/lote` e teste HTTP `loteConcorrenteRegistraLeiturasEAlertasCriticos` |
 
 ---
 
@@ -223,7 +226,12 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST $API/transferencias/999999/tele
 # 7. fonte simulada: 5 leituras, a última fora da faixa
 curl -s -X POST "$API/transferencias/$ID/telemetria/simulacao?quantidade=5&comDesvio=true"
 
-# 8. entregar a carga e confirmar que a telemetria é recusada (409)
+# 8. ingestao concorrente em lote: 12 leituras, 4 alertas criticos
+curl -s -X POST $API/transferencias/$ID/telemetria/lote \
+  -H 'Content-Type: application/json' \
+  -d '{"leituras":[{"temperatura":2},{"temperatura":7.4},{"temperatura":6},{"temperatura":1.9},{"temperatura":4.2},{"temperatura":5.5},{"temperatura":6.1},{"temperatura":3.3},{"temperatura":8},{"temperatura":2.5},{"temperatura":4.8},{"temperatura":5.9}]}'
+
+# 9. entregar a carga e confirmar que a telemetria é recusada (409)
 curl -s -X PATCH $API/transferencias/$ID/entrega
 curl -s -o /dev/null -w "%{http_code}\n" -X POST $API/transferencias/$ID/telemetria \
   -H 'Content-Type: application/json' -d '{"temperatura":4}'

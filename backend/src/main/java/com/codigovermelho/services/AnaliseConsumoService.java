@@ -10,6 +10,7 @@ import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Service
 public class AnaliseConsumoService {
@@ -19,7 +20,7 @@ public class AnaliseConsumoService {
     private static final int[] THREADS_PERMITIDAS = {2, 4, 8};
     private final ThreadPoolExecutor executor;
 
-    public AnaliseConsumoService(ThreadPoolExecutor executor) {
+    public AnaliseConsumoService(@Qualifier("analiseExecutorService") ThreadPoolExecutor executor) {
         this.executor = executor;
     }
 

@@ -752,15 +752,33 @@ export async function buscarScoreRiscoApi(): Promise<any[]> {
 
 export async function buscarTelemetriaApi(transferenciaId?: number | string): Promise<any[]> {
   try {
-    const url = transferenciaId
-        ? `${API_BASE_URL}/telemetria?transferenciaId=${transferenciaId}`
-        : `${API_BASE_URL}/telemetria`;
+    if (!transferenciaId) return [];
+    const url = `${API_BASE_URL}/transferencias/${transferenciaId}/telemetria`;
     const res = await fetch(url);
     if (res.ok) return await res.json();
   } catch (e) {
     console.warn("Backend offline ao buscar telemetria.");
   }
   return [];
+}
+
+export interface AlertaTermicoAPI {
+  id: number;
+  transferenciaId: number;
+  codigoTransferencia: string;
+  leituraId: number;
+  temperatura: number;
+  nivel: "NORMAL" | "ATENCAO" | "CRITICO" | "RISCO_VENCIMENTO";
+  mensagem: string;
+  dataHora: string;
+}
+
+export async function listarAlertasTermicosApi(): Promise<AlertaTermicoAPI[]> {
+  const response = await fetch(`${API_BASE_URL}/alertas-termicos`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error(`Falha ao consultar alertas térmicos (${response.status})`);
+  return response.json();
 }
 
 // ─── US10: monitoramento real da API ─────────────────────────────────────────

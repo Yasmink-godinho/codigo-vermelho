@@ -1,9 +1,30 @@
 // Tela de Central de Alertas — US03
 
+import { useEffect, useState } from "react";
 import { IconActivity, IconBell, IconCheck, IconClock, IconMapPin } from "@/components/icons";
-import type { Hospital } from "@/types";
+import { listarAlertasTermicosApi, type AlertaTermicoAPI } from "@/data/api";
 
 export default function AlertasScreen({ filter, setFilter }: { filter: string; setFilter: (v: any) => void }) {
+  const [alertasTermicos, setAlertasTermicos] = useState<AlertaTermicoAPI[]>([]);
+  const [erroAlertas, setErroAlertas] = useState("");
+  const [tentativa, setTentativa] = useState(0);
+  useEffect(() => {
+    let ativo = true;
+    listarAlertasTermicosApi()
+      .then((dados) => {
+        if (ativo) {
+          setAlertasTermicos(dados);
+          setErroAlertas("");
+        }
+      })
+      .catch((erro: unknown) => {
+        if (ativo) {
+          setErroAlertas(erro instanceof Error ? erro.message : "Não foi possível carregar os alertas térmicos.");
+        }
+      });
+    return () => { ativo = false; };
+  }, [tentativa]);
+
   const alerts = [
     {
       id: "ALT-0043",
@@ -22,15 +43,6 @@ export default function AlertasScreen({ filter, setFilter }: { filter: string; s
       desc: "8 unidades de B- vencem nas próximas 48 horas. Recomenda-se redistribuição imediata para unidades com consumo ativo.",
       time: "há 34 min",
       action: "Redistribuir",
-    },
-    {
-      id: "ALT-0041",
-      level: "atencao",
-      title: "Desvio de temperatura em transporte",
-      institution: "Transferência #1027 · Rota C-Sul",
-      desc: "Temperatura do contêiner registrou 7,4°C durante 18 minutos. Transferência pausada automaticamente. Aguardando avaliação do responsável técnico.",
-      time: "há 1h",
-      action: "Avaliar",
     },
     {
       id: "ALT-0040",
@@ -61,7 +73,24 @@ export default function AlertasScreen({ filter, setFilter }: { filter: string; s
     },
   ];
 
-  const filtered = filter === "todos" ? alerts : alerts.filter((a) => a.level === filter);
+  const alertasReais = alertasTermicos.map((alerta) => ({
+    id: `ALT-T-${alerta.id}`,
+    level: {
+      NORMAL: "normal",
+      ATENCAO: "atencao",
+      CRITICO: "critico",
+      RISCO_VENCIMENTO: "atencao",
+    }[alerta.nivel],
+    title: `Desvio térmico — ${alerta.codigoTransferencia}`,
+    institution: `Transferência #${alerta.transferenciaId}`,
+    desc: alerta.mensagem,
+    time: new Date(alerta.dataHora).toLocaleString("pt-BR"),
+    action: "Avaliar",
+  }));
+  const alertsComTelemetria = [...alertasReais, ...alerts];
+  const filtered = filter === "todos"
+    ? alertsComTelemetria
+    : alertsComTelemetria.filter((a) => a.level === filter);
 
   const levelConfig: Record<string, { label: string; dot: string; badge: string; border: string }> = {
     critico: { label: "Crítico", dot: "bg-[#C8102E]", badge: "bg-[#FFF0F2] text-[#C8102E]", border: "border-l-[#C8102E]" },
@@ -70,10 +99,10 @@ export default function AlertasScreen({ filter, setFilter }: { filter: string; s
   };
 
   const counts = {
-    todos: alerts.length,
-    critico: alerts.filter((a) => a.level === "critico").length,
-    atencao: alerts.filter((a) => a.level === "atencao").length,
-    normal: alerts.filter((a) => a.level === "normal").length,
+    todos: alertsComTelemetria.length,
+    critico: alertsComTelemetria.filter((a) => a.level === "critico").length,
+    atencao: alertsComTelemetria.filter((a) => a.level === "atencao").length,
+    normal: alertsComTelemetria.filter((a) => a.level === "normal").length,
   };
 
   const filters: { key: string; label: string; count: number }[] = [
@@ -90,25 +119,37 @@ export default function AlertasScreen({ filter, setFilter }: { filter: string; s
         <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-[#FFF0F2] text-[#C8102E] flex items-center justify-center"><IconBell size={17} /></div>
           <div>
-            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>2</div>
+            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>{counts.critico}</div>
             <div className="text-[12px] text-slate-400 mt-0.5">Alertas críticos ativos</div>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><IconActivity size={17} /></div>
           <div>
-            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>2</div>
+            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>{counts.atencao}</div>
             <div className="text-[12px] text-slate-400 mt-0.5">Situações em atenção</div>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><IconCheck size={17} /></div>
           <div>
-            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>2</div>
+            <div className="text-[24px] font-700 text-slate-900 leading-none" style={{ fontWeight: 700 }}>{counts.normal}</div>
             <div className="text-[12px] text-slate-400 mt-0.5">Resolvidos hoje</div>
           </div>
         </div>
       </div>
+
+      {erroAlertas && (
+        <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          Não foi possível atualizar os alertas térmicos: {erroAlertas}
+          <button
+            className="ml-3 font-semibold underline"
+            onClick={() => setTentativa((valor) => valor + 1)}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-5">

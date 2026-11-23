@@ -228,6 +228,49 @@ class RotasETelemetriaHttpTest {
     }
 
     @Test
+    void loteConcorrenteRegistraLeiturasEAlertasCriticos() {
+        long id = extrairId(criarTransferencia(a, c));
+        String json = "{\"leituras\":["
+                + "{\"temperatura\":2.0},{\"temperatura\":7.4},{\"temperatura\":6.0},"
+                + "{\"temperatura\":1.9},{\"temperatura\":4.2},{\"temperatura\":5.5},"
+                + "{\"temperatura\":6.1},{\"temperatura\":3.3},{\"temperatura\":8.0},"
+                + "{\"temperatura\":2.5},{\"temperatura\":4.8},{\"temperatura\":5.9}]}";
+
+        Resposta lote = post("/api/v1/transferencias/" + id + "/telemetria/lote", json);
+
+        assertEquals(201, lote.status());
+        assertTrue(lote.corpo().contains("\"foraDaFaixa\":false"));
+        assertTrue(lote.corpo().contains("\"foraDaFaixa\":true"));
+        assertTrue(lote.corpo().contains("\"nivel\":\"CRITICO\""));
+
+        Resposta historico = get("/api/v1/transferencias/" + id + "/telemetria");
+        assertEquals(200, historico.status());
+        int ocorrenciasLeitura = contarOcorrencias(historico.corpo(), "\"transferenciaId\":" + id);
+        assertEquals(12, ocorrenciasLeitura);
+
+        Resposta alertas = get("/api/v1/transferencias/" + id + "/alertas");
+        assertEquals(200, alertas.status());
+        int ocorrenciasCriticas = contarOcorrencias(alertas.corpo(), "\"nivel\":\"CRITICO\"");
+        assertEquals(4, ocorrenciasCriticas);
+    }
+
+    @Test
+    void loteConcorrenteValidaLimiteQuantidadeETemperatura() {
+        long id = extrairId(criarTransferencia(a, c));
+
+        assertEquals(400, post("/api/v1/transferencias/" + id + "/telemetria/lote",
+                "{\"leituras\":[{\"temperatura\":101}]}").status());
+
+        StringBuilder lista = new StringBuilder("{\"leituras\":[");
+        for (int i = 1; i <= 51; i++) {
+            if (i > 1) lista.append(',');
+            lista.append("{\"temperatura\":4.0}");
+        }
+        lista.append("]}");
+        assertEquals(400, post("/api/v1/transferencias/" + id + "/telemetria/lote", lista.toString()).status());
+    }
+
+    @Test
     void leituraInvalidaVolta400() {
         long id = extrairId(criarTransferencia(a, c));
         String url = "/api/v1/transferencias/" + id + "/telemetria";
@@ -299,6 +342,16 @@ class RotasETelemetriaHttpTest {
         Matcher m = Pattern.compile("\"id\":(\\d+)").matcher(resposta.corpo());
         assertTrue(m.find(), "nao achei o id em: " + resposta.corpo());
         return Long.parseLong(m.group(1));
+    }
+
+    private int contarOcorrencias(String texto, String trecho) {
+        int total = 0;
+        int inicio = 0;
+        while ((inicio = texto.indexOf(trecho, inicio)) >= 0) {
+            total++;
+            inicio += trecho.length();
+        }
+        return total;
     }
 
     private Resposta get(String caminho) {

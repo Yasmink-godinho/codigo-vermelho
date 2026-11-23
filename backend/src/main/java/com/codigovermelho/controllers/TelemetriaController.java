@@ -2,8 +2,10 @@ package com.codigovermelho.controllers;
 
 import com.codigovermelho.controllers.dto.AlertaTermicoResponse;
 import com.codigovermelho.controllers.dto.LeituraResponse;
+import com.codigovermelho.controllers.dto.LoteLeituraRequest;
 import com.codigovermelho.controllers.dto.NovaLeituraRequest;
 import com.codigovermelho.services.SimuladorTelemetriaService;
+import com.codigovermelho.services.TelemetriaIngestaoService;
 import com.codigovermelho.services.TelemetriaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,10 +27,14 @@ public class TelemetriaController {
 
     private final TelemetriaService telemetriaService;
     private final SimuladorTelemetriaService simuladorService;
+    private final TelemetriaIngestaoService ingestaoService;
 
-    public TelemetriaController(TelemetriaService telemetriaService, SimuladorTelemetriaService simuladorService) {
+    public TelemetriaController(TelemetriaService telemetriaService,
+                                SimuladorTelemetriaService simuladorService,
+                                TelemetriaIngestaoService ingestaoService) {
         this.telemetriaService = telemetriaService;
         this.simuladorService = simuladorService;
+        this.ingestaoService = ingestaoService;
     }
 
     // Sempre 201 quando a leitura e aceita, mesmo fora da faixa (nao e erro, e regra de negocio).
@@ -39,6 +45,18 @@ public class TelemetriaController {
         TelemetriaService.ResultadoLeitura resultado = telemetriaService.registrarLeitura(id, request.temperatura());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(LeituraResponse.fromEntity(resultado.leitura(), resultado.alerta()));
+    }
+
+    @PostMapping("/transferencias/{id}/telemetria/lote")
+    public ResponseEntity<List<LeituraResponse>> registrarLote(@PathVariable Long id,
+                                                               @Valid @RequestBody LoteLeituraRequest request) {
+        List<Double> temperaturas = request.leituras().stream()
+                .map(NovaLeituraRequest::temperatura)
+                .toList();
+        List<LeituraResponse> resposta = ingestaoService.registrarEmLote(id, temperaturas).stream()
+                .map(r -> LeituraResponse.fromEntity(r.leitura(), r.alerta()))
+                .toList();
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }
 
     // historico de leituras da transferencia, da mais antiga pra mais nova

@@ -109,6 +109,7 @@ Este documento define o contrato REST de cada funcionalidade e verifica, histór
 | Ação | Endpoint | Status esperado |
 |---|---|---|
 | Registrar leitura de temperatura | `POST /api/v1/transferencias/{id}/telemetria` | `201` · `404` transferência inexistente · `409` transferência que não está em transporte |
+| Registrar lote concorrente | `POST /api/v1/transferencias/{id}/telemetria/lote` | `201` · `400` lote ou temperatura inválidos · `404` transferência inexistente · `409` transferência que não está em transporte |
 | Listar leituras de uma transferência | `GET /api/v1/transferencias/{id}/telemetria` | `200` · `404` |
 | Listar alertas térmicos de uma transferência | `GET /api/v1/transferencias/{id}/alertas` | `200` · `404` |
 | Listar todos os alertas térmicos | `GET /api/v1/alertas-termicos` | `200` |
