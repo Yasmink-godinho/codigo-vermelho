@@ -7,6 +7,7 @@ import com.codigovermelho.grafos.Dijkstra;
 import com.codigovermelho.grafos.Grafo;
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.Ligacao;
+import com.codigovermelho.observabilidade.MetricasNegocio;
 import com.codigovermelho.repositories.InstituicaoRepository;
 import com.codigovermelho.repositories.LigacaoRepository;
 import org.springframework.stereotype.Service;
@@ -28,14 +29,22 @@ public class RotaService {
 
     private final InstituicaoRepository instituicaoRepository;
     private final LigacaoRepository ligacaoRepository;
+    private final MetricasNegocio metricasNegocio;
 
-    public RotaService(InstituicaoRepository instituicaoRepository, LigacaoRepository ligacaoRepository) {
+    public RotaService(InstituicaoRepository instituicaoRepository, LigacaoRepository ligacaoRepository,
+                       MetricasNegocio metricasNegocio) {
         this.instituicaoRepository = instituicaoRepository;
         this.ligacaoRepository = ligacaoRepository;
+        this.metricasNegocio = metricasNegocio;
     }
 
+    // Observabilidade: o calculo e medido (timer codigovermelho.rota.calculo) e vira um span no trace.
     @Transactional(readOnly = true)
     public RotaResultado calcularRota(Long origemId, Long destinoId) {
+        return metricasNegocio.observarCalculoRota(origemId, destinoId, () -> calcular(origemId, destinoId));
+    }
+
+    private RotaResultado calcular(Long origemId, Long destinoId) {
         if (origemId == null || destinoId == null) {
             throw new IllegalArgumentException("Origem e destino sao obrigatorios");
         }

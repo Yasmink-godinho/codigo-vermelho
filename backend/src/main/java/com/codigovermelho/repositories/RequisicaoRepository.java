@@ -11,6 +11,9 @@ import java.util.List;
 
 public interface RequisicaoRepository extends JpaRepository<Requisicao, Long> {
     List<Requisicao> findByStatus(StatusRequisicao status);
+
+    // usado pelo gauge codigovermelho.requisicoes.pendentes (MetricasNegocio)
+    long countByStatus(StatusRequisicao status);
     List<Requisicao> findByNivelUrgencia(NivelUrgencia nivelUrgencia);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

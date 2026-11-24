@@ -1,0 +1,72 @@
+// Grafana Alloy: coletor de logs dos conteineres -> Loki.
+// Le o stdout de todos os conteineres pelo socket do Docker, entao a aplicacao nao precisa
+// de nenhuma biblioteca extra: basta escrever o log no console (padrao do Spring Boot).
+
+// 1) Descobre os conteineres em execucao
+discovery.docker "conteineres" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 2) Transforma metadados do Docker em labels do Loki
+discovery.relabel "conteineres" {
+  targets = []
+
+  // nome do conteiner (ex.: codigo-vermelho-api)
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // nome do servico no compose (ex.: api, db, prometheus)
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  // label "observabilidade.application" definida no compose -> label application
+  // (mesmo nome da tag das metricas, para filtrar logs e metricas do mesmo jeito)
+  rule {
+    source_labels = ["__meta_docker_container_label_observabilidade_application"]
+    target_label  = "application"
+  }
+}
+
+// 3) Le os logs
+loki.source.docker "conteineres" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.conteineres.targets
+  relabel_rules = discovery.relabel.conteineres.rules
+  forward_to    = [loki.process.logs.receiver]
+}
+
+// 4) Tratamento especifico dos logs da aplicacao Java
+loki.process "logs" {
+  stage.match {
+    selector = `{application="codigo-vermelho"}`
+
+    // junta as linhas de stack trace com a linha do log que as originou
+    stage.multiline {
+      firstline     = `^\d{4}-\d{2}-\d{2}`
+      max_wait_time = "3s"
+    }
+
+    // extrai o nivel (INFO, WARN, ERROR...) e vira label, para filtrar no Explore
+    stage.regex {
+      expression = `^\S+\s+(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)\s`
+    }
+
+    stage.labels {
+      values = { level = "" }
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+// 5) Envia ao Loki
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

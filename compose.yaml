@@ -1,14 +1,20 @@
 name: codigo-vermelho
 
-# Sobe o sistema do zero com UM comando:
-#   cp .env.example .env   &&   docker compose up -d --build
+# Sobe o sistema E o ambiente de observabilidade do zero com UM comando:
+#   cp .env.example .env   (e troque as senhas)
+#   docker compose up -d --build
 #
-# Dois servicos na mesma rede do Compose (codigo-vermelho-net): a API acha o
-# banco pelo nome do servico "db". Os dados do Postgres ficam num volume
-# nomeado (pgdata), entao sobrevivem a `docker compose down` (so somem com
-# `docker compose down -v`).
+# Todos os servicos ficam na mesma rede do Compose (codigo-vermelho-net) e se acham pelo nome
+# do servico (a API acha o banco em "db", o Prometheus acha a API em "api" etc.).
+#
+# Portas publicadas no host:
+#   8080  API (publica)                         -> o Actuator fica na 8081, SEM porta publicada
+#   3000  Grafana (unico servico exposto no acesso remoto)
+#   9090  Prometheus, so em 127.0.0.1 (para consultar e tirar os prints na propria maquina)
+# Passo a passo completo: docs/observabilidade/README.md
 
 services:
+  # ======================================================================== Aplicacao
   db:
     image: postgres:16-alpine
     container_name: codigo-vermelho-db
@@ -23,6 +29,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    # volta sozinho se a maquina (ex.: VM do acesso remoto) reiniciar
+    restart: unless-stopped
     networks:
       - codigo-vermelho-net
 
@@ -42,19 +50,199 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-codigo_vermelho}
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # ---- Observabilidade ----
+      # Actuator (/actuator/**) na porta 8081, alcancavel so pela rede interna
+      MANAGEMENT_PORT: "8081"
+      # Liga a exportacao de traces (desligada por padrao no application.properties) e envia ao Tempo via OTLP/HTTP
+      MANAGEMENT_TRACING_EXPORT_ENABLED: "true"
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      # Liga o endpoint /api/v1/observabilidade/erro-simulado (caso de erro da demonstracao)
+      APP_OBSERVABILIDADE_ENDPOINT_ERRO_HABILITADO: "true"
+    labels:
+      # o Alloy transforma esta label na label "application" dos logs no Loki
+      observabilidade.application: codigo-vermelho
     ports:
       - "${API_PORT:-8080}:8080"
+    expose:
+      - "8081"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/instituicoes"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 40s
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  # Gerador de carga: chama a API a cada poucos segundos (rotas, requisicoes, transferencias,
+  # telemetria, 404 e 500) para os graficos terem dados durante a correcao remota.
+  gerador-carga:
+    image: curlimages/curl:8.11.1
+    container_name: codigo-vermelho-gerador-carga
+    entrypoint: ["/bin/sh", "/scripts/gerar-carga.sh"]
+    environment:
+      API_URL: http://api:8080
+      INTERVALO_SEGUNDOS: ${CARGA_INTERVALO_SEGUNDOS:-2}
+    volumes:
+      - ./scripts/gerar-carga.sh:/scripts/gerar-carga.sh:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  # ======================================================================== Metricas
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: codigo-vermelho-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      # so na propria maquina: o Prometheus NAO deve ficar exposto na internet
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: codigo-vermelho-node-exporter
+    command:
+      - --path.rootfs=/host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: codigo-vermelho-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: codigo-vermelho-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-codigo_vermelho}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  # ======================================================================== Logs e traces
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: codigo-vermelho-loki
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    container_name: codigo-vermelho-alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./loki/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: codigo-vermelho-tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    # roda como root para conseguir escrever no volume recem-criado (ambiente de laboratorio)
+    user: "0"
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  # ======================================================================== Visualizacao
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: codigo-vermelho-grafana
+    environment:
+      # Senha do admin vem do .env (que NAO vai para o Git). Sem ela o compose nem sobe.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?defina GRAFANA_ADMIN_PASSWORD no .env}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/codigo-vermelho-aplicacao.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+    networks:
+      - codigo-vermelho-net
+
+  # ======================================================================== Acesso remoto (opcional)
+  # Cloudflare Tunnel "rapido": gera uma URL https://<aleatorio>.trycloudflare.com que aponta
+  # SO para o Grafana, sem abrir porta no roteador. So sobe com o perfil "remoto":
+  #   docker compose --profile remoto up -d
+  #   docker compose logs cloudflared | grep trycloudflare.com
+  # A URL muda se o conteiner reiniciar. Detalhes em docs/observabilidade/README.md (secao 7).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: codigo-vermelho-cloudflared
+    command: ["tunnel", "--no-autoupdate", "--url", "http://grafana:3000"]
+    depends_on:
+      - grafana
+    profiles: ["remoto"]
+    restart: unless-stopped
     networks:
       - codigo-vermelho-net
 
 volumes:
   pgdata:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  tempo-data:
 
 networks:
   codigo-vermelho-net:

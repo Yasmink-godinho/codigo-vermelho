@@ -102,6 +102,7 @@ Aplicação de conceitos de concorrência e multithreading, além de processos r
 
 Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, telemetria e monitoramento da infraestrutura logística.
 * 📂 Documentação: [`docs/redes/`](docs/redes/)
+* 📈 Observabilidade (Actuator, Prometheus, Grafana, Loki e Tempo): [`docs/observabilidade/`](docs/observabilidade/README.md)
 
 ---
 

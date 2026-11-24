@@ -6,6 +6,7 @@ import com.codigovermelho.exceptions.RegraDeNegocioException;
 import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.Transferencia;
 import com.codigovermelho.models.Requisicao;
+import com.codigovermelho.observabilidade.MetricasNegocio;
 import com.codigovermelho.repositories.InstituicaoRepository;
 import com.codigovermelho.repositories.TransferenciaRepository;
 import org.springframework.stereotype.Service;
@@ -24,19 +25,30 @@ public class TransferenciaService {
     private final InstituicaoRepository instituicaoRepository;
     private final RotaService rotaService;
     private final AlocacaoCompatibilidadeService alocacaoCompatibilidadeService;
+    private final MetricasNegocio metricasNegocio;
 
     public TransferenciaService(TransferenciaRepository transferenciaRepository,
                                 InstituicaoRepository instituicaoRepository,
                                 RotaService rotaService,
-                                AlocacaoCompatibilidadeService alocacaoCompatibilidadeService) {
+                                AlocacaoCompatibilidadeService alocacaoCompatibilidadeService,
+                                MetricasNegocio metricasNegocio) {
         this.transferenciaRepository = transferenciaRepository;
         this.instituicaoRepository = instituicaoRepository;
         this.rotaService = rotaService;
         this.alocacaoCompatibilidadeService = alocacaoCompatibilidadeService;
+        this.metricasNegocio = metricasNegocio;
     }
 
+    // Observabilidade: a criacao inteira vira o span "criacao-transferencia", com o span
+    // "calculo-rota" dentro dele (HTTP -> criacao-transferencia -> calculo-rota).
     @Transactional
     public Transferencia criar(NovaTransferenciaRequest request) {
+        Transferencia criada = metricasNegocio.observarCriacaoTransferencia(() -> criarTransferencia(request));
+        metricasNegocio.transferenciaCriada(criada);
+        return criada;
+    }
+
+    private Transferencia criarTransferencia(NovaTransferenciaRequest request) {
         // 1) Valida requisicao, destino e compatibilidade (409 se incompativel) SEM alterar nada.
         Requisicao requisicao = alocacaoCompatibilidadeService.validarParaTransferencia(
                 request.requisicaoId(), request.origemId(), request.destinoId(), request.tipoSanguineo(),

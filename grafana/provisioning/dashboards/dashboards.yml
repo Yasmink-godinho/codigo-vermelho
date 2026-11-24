@@ -1,0 +1,12 @@
+# Carrega os dashboards JSON de grafana/dashboards (montado em /var/lib/grafana/dashboards).
+apiVersion: 1
+
+providers:
+  - name: codigo-vermelho
+    folder: Código Vermelho
+    type: file
+    disableDeletion: true
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
