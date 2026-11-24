@@ -4,6 +4,7 @@ import com.codigovermelho.exceptions.RegraDeNegocioException;
 import com.codigovermelho.models.AlertaTermico;
 import com.codigovermelho.models.LeituraTelemetria;
 import com.codigovermelho.models.Transferencia;
+import com.codigovermelho.observabilidade.MetricasNegocio;
 import com.codigovermelho.repositories.AlertaTermicoRepository;
 import com.codigovermelho.repositories.LeituraTelemetriaRepository;
 import com.codigovermelho.repositories.TransferenciaRepository;
@@ -26,13 +27,16 @@ public class TelemetriaService {
     private final TransferenciaRepository transferenciaRepository;
     private final LeituraTelemetriaRepository leituraRepository;
     private final AlertaTermicoRepository alertaRepository;
+    private final MetricasNegocio metricasNegocio;
 
     public TelemetriaService(TransferenciaRepository transferenciaRepository,
                              LeituraTelemetriaRepository leituraRepository,
-                             AlertaTermicoRepository alertaRepository) {
+                             AlertaTermicoRepository alertaRepository,
+                             MetricasNegocio metricasNegocio) {
         this.transferenciaRepository = transferenciaRepository;
         this.leituraRepository = leituraRepository;
         this.alertaRepository = alertaRepository;
+        this.metricasNegocio = metricasNegocio;
     }
 
     @Transactional
@@ -50,6 +54,8 @@ public class TelemetriaService {
         AlertaTermico alerta = null;
         if (leitura.isForaDaFaixa()) {
             alerta = alertaRepository.save(new AlertaTermico(leitura, montarMensagem(transferencia, temperatura)));
+            String lado = temperatura > LeituraTelemetria.TEMPERATURA_MAXIMA ? "acima" : "abaixo";
+            metricasNegocio.alertaTermicoGerado(transferenciaId, temperatura, lado);
         }
         return new ResultadoLeitura(leitura, alerta);
     }

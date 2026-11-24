@@ -1,2 +1,4 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+# scripts shell rodam dentro de conteineres Linux: sempre LF, mesmo no Windows
+*.sh text eol=lf

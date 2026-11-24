@@ -43,6 +43,33 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
+        <!-- ===== Observabilidade (RSD - Projeto de Avaliacao) ===== -->
+        <!-- Endpoints de gerenciamento: /actuator/health, info, metrics, prometheus -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Formata as metricas no padrao Prometheus (/actuator/prometheus) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Traces via OpenTelemetry (OTLP) para o Grafana Tempo. No Spring Boot 4 este starter
+             substitui o micrometer-tracing-bridge-otel + opentelemetry-exporter-otlp do Boot 3.
+             O registry OTLP de METRICAS e excluido: as metricas sao coletadas pelo Prometheus
+             (scrape), e sem a exclusao a app tentaria enviar metricas para localhost:4318. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>micrometer-registry-otlp</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>

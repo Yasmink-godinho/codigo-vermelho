@@ -1,0 +1,51 @@
+# Datasources provisionados automaticamente ao subir o Grafana.
+# Os "uid" fixos sao usados pelos dashboards e pelas ligacoes entre Loki e Tempo.
+# Atencao: neste arquivo "$$" vira "$" (o Grafana usa "$" para variaveis de ambiente).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      # Log -> trace: cada linha com "trace_id=<id>" ganha um botao que abre o trace no Tempo
+      derivedFields:
+        - name: TraceID
+          datasourceUid: tempo
+          matcherRegex: 'trace_id=(\w+)'
+          url: '$${__value.raw}'
+          urlDisplayLabel: Abrir trace no Tempo
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      # Trace -> logs: botao "Logs for this span" busca no Loki as linhas com o mesmo traceId
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        customQuery: true
+        query: '{application="codigo-vermelho"} |= "$${__trace.traceId}"'
+      lokiSearch:
+        datasourceUid: loki
+      nodeGraph:
+        enabled: true

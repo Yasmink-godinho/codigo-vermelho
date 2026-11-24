@@ -1,0 +1,55 @@
+# Prometheus do Codigo Vermelho
+# Todos os targets sao enderecados pelo NOME DO SERVICO na rede interna do Docker Compose.
+# Conferir em http://localhost:9090/targets: todos devem estar UP.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    projeto: codigo-vermelho
+
+scrape_configs:
+  # O proprio Prometheus
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Aplicacao web Java (Spring Boot). O Actuator fica na porta 8081, que NAO e publicada no host.
+  - job_name: codigo-vermelho
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["api:8081"]
+        labels:
+          ambiente: lab
+
+  # Host: CPU, memoria, disco, rede e load average
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Conteineres: CPU e memoria por conteiner
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Banco PostgreSQL (exporter opcional do R3)
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Componentes da propria stack de observabilidade
+  - job_name: loki
+    static_configs:
+      - targets: ["loki:3100"]
+
+  - job_name: tempo
+    static_configs:
+      - targets: ["tempo:3200"]
+
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy:12345"]
+
+  - job_name: grafana
+    static_configs:
+      - targets: ["grafana:3000"]

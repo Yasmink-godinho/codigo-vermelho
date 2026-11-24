@@ -6,6 +6,7 @@ import com.codigovermelho.models.Instituicao;
 import com.codigovermelho.models.Requisicao;
 import com.codigovermelho.models.enums.NivelUrgencia;
 import com.codigovermelho.models.enums.StatusRequisicao;
+import com.codigovermelho.observabilidade.MetricasNegocio;
 import com.codigovermelho.repositories.InstituicaoRepository;
 import com.codigovermelho.repositories.RequisicaoRepository;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,14 @@ import java.util.NoSuchElementException;
 public class RequisicaoService {
     private final RequisicaoRepository requisicaoRepository;
     private final InstituicaoRepository instituicaoRepository;
+    private final MetricasNegocio metricasNegocio;
 
     public RequisicaoService(RequisicaoRepository requisicaoRepository,
-                             InstituicaoRepository instituicaoRepository) {
+                             InstituicaoRepository instituicaoRepository,
+                             MetricasNegocio metricasNegocio) {
         this.requisicaoRepository = requisicaoRepository;
         this.instituicaoRepository = instituicaoRepository;
+        this.metricasNegocio = metricasNegocio;
     }
 
     /**
@@ -39,7 +43,9 @@ public class RequisicaoService {
                 .orElseThrow(() -> new NoSuchElementException("Instituicao nao encontrada: " + instituicaoId));
 
         Requisicao requisicao = new Requisicao(instituicao, tipoSanguineo, componente, volume, nivelUrgencia, observacoes);
-        return requisicaoRepository.save(requisicao);
+        Requisicao salva = requisicaoRepository.save(requisicao);
+        metricasNegocio.requisicaoEmitida(salva);
+        return salva;
     }
 
     /**
