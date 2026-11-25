@@ -101,8 +101,13 @@ Aplicação de conceitos de concorrência e multithreading, além de processos r
 ### 🌐 RSD — Infraestrutura de Comunicação
 
 Estudo e aplicação de conceitos relacionados à comunicação entre sistemas, telemetria e monitoramento da infraestrutura logística.
+
+Na entrega de observabilidade, o backend foi instrumentado com **Spring Boot Actuator e Micrometer** (métricas HTTP, JVM, HikariCP e seis métricas de negócio), com coleta pelo **Prometheus**, logs no **Loki**, traces no **Tempo** e visualização no **Grafana**. Toda a stack sobe com um único `docker compose up -d --build` e está publicada numa VM do Microsoft Azure, com acesso de leitura para o professor.
+
 * 📂 Documentação: [`docs/redes/`](docs/redes/)
-* 📈 Observabilidade (Actuator, Prometheus, Grafana, Loki e Tempo): [`docs/observabilidade/`](docs/observabilidade/README.md)
+* 📈 Observabilidade, guia técnico: [`docs/observabilidade/README.md`](docs/observabilidade/README.md)
+* 📝 Relatório com evidências: [`docs/observabilidade/RELATORIO.md`](docs/observabilidade/RELATORIO.md)
+* 🏷️ Versão avaliada: tag [`rsd-observabilidade-v1`](https://github.com/Yasmink-godinho/codigo-vermelho/tree/rsd-observabilidade-v1)
 
 ---
 
@@ -239,6 +244,12 @@ A aplicação é dividida em dois ecossistemas desacoplados que comunicam via JS
 | **Build Tool (Back)** | **Maven (Wrapper ./mvnw)** | Gestão de dependências e compilação do ecossistema Java |
 | **Versionamento** | **Git / GitHub** | Controle de versão distribuído e colaboração |
 | **CI/CD** | **GitHub Actions** | Esteira automatizada de build e execução de testes contínuos |
+| **Contêineres** | **Docker / Docker Compose** | Sobe API, banco e a stack de observabilidade com um único comando |
+| **Métricas da aplicação** | **Spring Boot Actuator / Micrometer** | Métricas HTTP, JVM, HikariCP e métricas de negócio expostas em `/actuator/prometheus` |
+| **Coleta de métricas** | **Prometheus** | Scrape da API e dos exporters (Node Exporter, cAdvisor e postgres_exporter) |
+| **Logs e traces** | **Grafana Loki / Alloy e Grafana Tempo (OpenTelemetry)** | Centralização dos logs e rastreamento das requisições, com correlação log → trace |
+| **Visualização** | **Grafana** | Dashboards de aplicação e de infraestrutura, provisionados automaticamente |
+| **Nuvem (observabilidade)** | **Microsoft Azure (VM Ubuntu)** | Ambiente de observabilidade ligado 24h para acesso remoto |
 
 ---
 
@@ -283,6 +294,21 @@ npm run dev
 
 * **Aplicação Web:** `http://localhost:5173`
 
+#### 3. Ambiente completo com observabilidade (Docker)
+
+Com o **Docker** instalado, a partir da raiz do repositório:
+
+```bash
+cp .env.example .env            # defina as senhas do banco e do Grafana
+docker compose up -d --build    # API, PostgreSQL, Prometheus, Grafana, Loki, Tempo e exporters
+docker compose ps               # api e db devem ficar "healthy"
+```
+
+* **Grafana:** `http://localhost:3000`
+* **Prometheus:** `http://localhost:9090`
+
+Passo a passo completo e como conferir cada parte: [`docs/observabilidade/README.md`](docs/observabilidade/README.md).
+
 
 **➡️ [COMO_EXECUTAR.md](docs/COMO_EXECUTAR.md) - Guia completo e solução de problemas**
 
@@ -300,6 +326,7 @@ codigo-vermelho/
 │   │   ├── config/
 │   │   ├── controllers/
 │   │   ├── models/
+│   │   ├── observabilidade/
 │   │   ├── repositories/
 │   │   └── services/
 │   ├── src/main/resources/
@@ -316,12 +343,20 @@ codigo-vermelho/
 ├── docs/
 │   ├── aed/
 │   ├── infraestrutura_software/
+│   ├── observabilidade/
 │   ├── poo/
 │   ├── redes/
 │   ├── img/
 │   ├── COMO_EXECUTAR.md
 │   ├── PROTOTIPO.md
 │   └── RESULTADO_ROTA.md
+├── grafana/          # datasources e dashboards provisionados
+├── loki/             # Loki e Alloy (logs)
+├── prometheus/       # configuração do Prometheus
+├── scripts/          # gerador de carga e criação do usuário Viewer
+├── tempo/            # Tempo (traces)
+├── compose.yaml      # API, banco e stack de observabilidade
+├── .env.example
 ├── pom.xml
 ├── README.md
 └── LICENSE
@@ -332,6 +367,8 @@ codigo-vermelho/
 ## 📦 Entregas do Projeto
 
 **➡️ [ENTREGAS_POO.md](docs/poo/ENTREGAS_POO.md) - Índice completo de artefatos por entrega (POO)**
+
+**➡️ [RELATORIO.md](docs/observabilidade/RELATORIO.md) - Entrega de observabilidade (RSD), versão avaliada na tag [`rsd-observabilidade-v1`](https://github.com/Yasmink-godinho/codigo-vermelho/tree/rsd-observabilidade-v1)**
 
 ---
 

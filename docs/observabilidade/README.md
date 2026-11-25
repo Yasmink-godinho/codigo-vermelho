@@ -5,6 +5,11 @@
 
 Este documento é o passo a passo para subir, conferir e apresentar o ambiente. Tudo sobe com **um único comando** a partir da raiz do repositório.
 
+> **Entrega**
+> - Relatório com as evidências: [`RELATORIO.md`](RELATORIO.md) (prints em [`evidencias/`](evidencias/))
+> - Versão avaliada: tag [`rsd-observabilidade-v1`](https://github.com/Yasmink-godinho/codigo-vermelho/tree/rsd-observabilidade-v1), PR [#59](https://github.com/Yasmink-godinho/codigo-vermelho/pull/59)
+> - Ambiente no ar: Grafana em `http://20.236.108.74:3000`, numa VM do Azure (ver seção 7.3). Usuário e senha do professor só no PDF do Google Classroom.
+
 ---
 
 ## 1. O que foi feito
@@ -213,6 +218,28 @@ Depois coloque essa URL em `GRAFANA_ROOT_URL` no `.env` e recrie só o Grafana (
 
 Em VM Linux o Node Exporter e o cAdvisor medem a máquina de verdade.
 
+**Ambiente usado na entrega:** VM Ubuntu Server 24.04 no Microsoft Azure (Azure for Students), tamanho B2als_v2 (2 vCPUs, 4 GB), região North Central US, IP público estático. No grupo de segurança de rede só as portas 22 (SSH da equipe) e 3000 (Grafana) estão abertas. A VM roda a tag `rsd-observabilidade-v1`.
+
+Dois cuidados que apareceram na prática:
+
+- **Regiões do Azure for Students:** a assinatura só permite algumas regiões. Se a criação da VM falhar com `RequestDisallowedByAzure`, veja as regiões liberadas na política *Allowed resource deployment regions* da assinatura.
+- **Docker 29 e cAdvisor:** instalações novas do Docker 29 usam o *containerd image store*, que o cAdvisor v0.49.1 não reconhece (painéis de contêineres sem dados). Antes de subir o projeto, volte o Docker para `overlay2`:
+
+```bash
+echo '{"features":{"containerd-snapshotter":false}}' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+docker info | grep -i "storage driver"    # deve mostrar overlay2
+```
+
+Para atualizar a VM para uma nova versão:
+
+```bash
+cd ~/codigo-vermelho
+git fetch --tags
+git checkout rsd-observabilidade-v1
+docker compose up -d --build
+```
+
 ### 7.4 Opção C: Tailscale
 
 O professor entra na rede privada da equipe por convite e acessa `http://IP-TAILSCALE:3000`. Nada fica público na internet.
@@ -249,6 +276,8 @@ No Docker Desktop o Node Exporter e o cAdvisor medem a **VM do Docker**, não o 
 | Dashboards sem dados de negócio | Conferir se o `gerador-carga` está rodando (`docker compose logs gerador-carga`) |
 | Login do Grafana volta para `localhost` no acesso remoto | Ajustar `GRAFANA_ROOT_URL` e rodar `docker compose up -d grafana` |
 | Erro de permissão no Tempo | O serviço já roda com `user: "0"`; apague o volume com `docker compose down -v` e suba de novo |
+| Painéis de contêineres sem dados e log do cAdvisor com `failed to identify the read-write layer ID` | Docker 29 com *containerd image store*; voltar para `overlay2` (seção 7.3) |
+| API reiniciando com `password authentication failed` | O volume do Postgres foi criado com outra senha; `docker compose down -v` e `docker compose up -d --build` (apaga os dados do banco local) |
 
 ## 12. Versão avaliada
 
@@ -260,7 +289,7 @@ git tag -a rsd-observabilidade-v1 -m "Entrega RSD: observabilidade"
 git push origin rsd-observabilidade-v1
 ```
 
-O link da entrega no PDF aponta para a tag: `https://github.com/Yasmink-godinho/codigo-vermelho/tree/rsd-observabilidade-v1`.
+O link da entrega no PDF aponta para a tag: `https://github.com/Yasmink-godinho/codigo-vermelho/tree/rsd-observabilidade-v1`. A tag também foi publicada como *release* na página [Releases](https://github.com/Yasmink-godinho/codigo-vermelho/releases) do repositório.
 
 ## 13. Onde está cada requisito
 
